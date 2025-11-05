@@ -1,0 +1,27 @@
+# MARS User Plugin Manifest
+# Joe Hays' Work Environment Customizations
+
+name: joehays-work-customizations
+version: 1.0.0
+description: Joe's work environment dependencies for MARS E6 container
+author: Joe Hays <joe@example.com>
+
+# Lifecycle hooks
+hooks:
+  user-setup: hooks/user-setup.sh
+  pre-up: hooks/pre-up.sh
+
+# Error handling
+# Set to false to continue on errors (recommended for optional packages)
+fail_fast: false
+
+# Requirements
+requires:
+  mars-version: ">=0.5.0"
+
+# Metadata
+tags:
+  - work
+  - development
+  - texlive
+  - desktop
