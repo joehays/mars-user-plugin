@@ -50,6 +50,33 @@ declare -a SYMLINK_PAIRS=(
 )
 
 # =============================================================================
+# LazyVim First-Run Setup
+# =============================================================================
+setup_lazyvim_first_run() {
+    # Only run if nvim config is mounted and nvim is installed
+    if [ ! -d "/root/.config/nvim" ] || ! command -v nvim &>/dev/null; then
+        return 0
+    fi
+
+    # Check if treesitter parsers are installed (marker for first run)
+    # If parser directory doesn't exist or is empty, this is first launch
+    if [ ! -d "$HOME/.local/share/nvim/lazy/nvim-treesitter/parser" ] || \
+       [ -z "$(ls -A $HOME/.local/share/nvim/lazy/nvim-treesitter/parser 2>/dev/null)" ]; then
+        log_info "First-run LazyVim setup detected"
+        log_info "Installing Lazy plugins and treesitter parsers..."
+        log_info "This may take 1-2 minutes on first launch..."
+
+        # Clean up any stale temp directories from interrupted installations
+        rm -rf ~/.local/share/nvim/lazy/nvim-treesitter/tree-sitter-*-tmp/ 2>/dev/null || true
+
+        # Install all plugins and parsers (headless mode, non-interactive)
+        nvim --headless "+Lazy! sync" "+TSUpdateSync" +qa 2>&1 | grep -v "^$" || true
+
+        log_success "LazyVim plugins and treesitter parsers installed"
+    fi
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -129,6 +156,9 @@ main() {
     else
         log_warning "Plugin accessibility verification failed"
     fi
+
+    # Run LazyVim first-run setup if needed
+    setup_lazyvim_first_run
 }
 
 # Run main function
