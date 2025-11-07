@@ -34,6 +34,15 @@ services:
       # Your Custom Mounts (uncomment and customize)
       # ==================================================================
 
+      # CAPRA access token script (read-only)
+      - ~/dev/joe-docs/dev-ops/get_capra_access_token.sh:/root/dev/joe-docs/dev-ops/get_capra_access_token.sh:ro
+
+      # Dotfiles (read-write for LazyVim configuration)
+      - ~/dev/dotfiles/LazyVim-starter:/root/.config/nvim:rw
+      - ~/dev/dotfiles/.bashrc:/root/.bashrc:rw
+      - ~/dev/dotfiles/.zshrc:/root/.zshrc:rw
+      - ~/dev/dotfiles/.common_shrc:/root/.common_shrc:rw
+
       # Additional development repositories
       # - ~/dev/my-repo:/workspace/my-repo:rw
 
