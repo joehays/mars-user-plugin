@@ -116,6 +116,48 @@ cond_insert() {
     fi
 }
 
+# Register binary in system PATH by symlinking to /usr/local/bin
+# This ensures tools are discoverable without modifying shell rc files
+# Usage: register_bin <binary_path> [symlink_name]
+#   binary_path: Full path to the binary to register
+#   symlink_name: Optional name for symlink (defaults to basename of binary)
+# Example: register_bin /opt/nvim/bin/nvim
+# Example: register_bin ~/.cargo/bin/eza eza
+register_bin() {
+    local BINARY_PATH="${1}"
+    local SYMLINK_NAME="${2:-$(basename "${BINARY_PATH}")}"
+    local TARGET_DIR="/usr/local/bin"
+
+    # Validate binary exists
+    if [ ! -f "${BINARY_PATH}" ]; then
+        log_warning "Binary not found: ${BINARY_PATH}"
+        return 1
+    fi
+
+    # Check if binary is already on PATH (avoid duplicate symlinks)
+    if command -v "${SYMLINK_NAME}" &>/dev/null; then
+        local EXISTING_PATH=$(command -v "${SYMLINK_NAME}")
+        if [ "${EXISTING_PATH}" = "${BINARY_PATH}" ]; then
+            log_info "Binary already registered: ${SYMLINK_NAME} -> ${BINARY_PATH}"
+            return 0
+        elif [ "${EXISTING_PATH}" = "${TARGET_DIR}/${SYMLINK_NAME}" ]; then
+            log_info "Symlink already exists: ${SYMLINK_NAME}"
+            return 0
+        fi
+    fi
+
+    # Create symlink in /usr/local/bin
+    log_info "Registering binary: ${SYMLINK_NAME} -> ${BINARY_PATH}"
+    if [ -w "${TARGET_DIR}" ]; then
+        ln -sf "${BINARY_PATH}" "${TARGET_DIR}/${SYMLINK_NAME}"
+        log_success "Binary registered: ${SYMLINK_NAME} available on PATH"
+    else
+        # Need sudo for /usr/local/bin
+        sudo ln -sf "${BINARY_PATH}" "${TARGET_DIR}/${SYMLINK_NAME}"
+        log_success "Binary registered (sudo): ${SYMLINK_NAME} available on PATH"
+    fi
+}
+
 # Safely create a symbolic link, backing up conflicting files
 # Usage: cond_make_symlink <link_target> <link_name>
 cond_make_symlink() {
@@ -230,6 +272,7 @@ export -f log_error
 export -f cond_apt_install
 export -f cond_npm_install
 export -f cond_insert
+export -f register_bin
 export -f cond_make_symlink
 export -f detect_environment
 export -f get_rc_file
