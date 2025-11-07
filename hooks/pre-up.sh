@@ -1,6 +1,6 @@
 #!/bin/bash
 # =============================================================================
-# mars-plugin/hooks/pre-up.sh
+# hooks/pre-up.sh
 # Pre-up hook: Copy user-specific docker-compose.override.yml before starting E6
 #
 # Execution context:
@@ -11,28 +11,43 @@
 # =============================================================================
 set -euo pipefail
 
-# Colors
-BLUE='\033[0;34m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
+# =============================================================================
+# Setup
+# =============================================================================
 
-log_info() { echo -e "${BLUE}[joehays-plugin:pre-up]${NC} $*"; }
-log_success() { echo -e "${GREEN}[joehays-plugin:pre-up]${NC} ✅ $*"; }
-log_warning() { echo -e "${YELLOW}[joehays-plugin:pre-up]${NC} ⚠️  $*"; }
+# Get the directory containing this script
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Source utilities for consistent logging
+source "${SCRIPT_DIR}/scripts/utils.sh"
+
+# Override log function prefix for pre-up context
+log_info() {
+    echo -e "${BLUE}[joehays-plugin:pre-up]${NC} $*"
+}
+
+log_success() {
+    echo -e "${GREEN}[joehays-plugin:pre-up]${NC} ✅ $*"
+}
+
+log_warning() {
+    echo -e "${YELLOW}[joehays-plugin:pre-up]${NC} ⚠️  $*"
+}
 
 # =============================================================================
 # Configuration
 # =============================================================================
+
 ENABLE_CUSTOM_VOLUMES=true   # Set to false to disable custom volume mounting
 
-# Paths
-OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT}/templates/docker-compose.override.yml.template"
-OVERRIDE_TARGET="${MARS_REPO_ROOT}/mars-dev/dev-environment/docker-compose.override.yml"
+# Paths (use parameter expansion to handle unbound variables)
+OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.yml.template"
+OVERRIDE_TARGET="${MARS_REPO_ROOT:-}/mars-dev/dev-environment/docker-compose.override.yml"
 
 # =============================================================================
 # Main: Copy docker-compose override if enabled
 # =============================================================================
+
 main() {
     log_info "Checking for custom volume configuration..."
 

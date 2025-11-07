@@ -6,6 +6,7 @@ Mount additional directories into your E6 container in 3 steps.
 
 ```bash
 cd ~/dev/mars-v2
+source mars-env.config
 mars-dev register-plugin ~/dev/dotfiles/mars-plugin
 ```
 

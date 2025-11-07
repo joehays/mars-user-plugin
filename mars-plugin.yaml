@@ -10,6 +10,7 @@ author: Joe Hays <joe@example.com>
 hooks:
   user-setup: hooks/user-setup.sh
   pre-up: hooks/pre-up.sh
+  container-startup: hooks/container-startup.sh
 
 # Error handling
 # Set to false to continue on errors (recommended for optional packages)
