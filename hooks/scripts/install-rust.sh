@@ -71,15 +71,25 @@ install_rust() {
     echo 'Configuring Environment'
     echo '------------------------------'
 
-    # Add cargo environment sourcing to RC file
+    # Add cargo environment sourcing to RC file (backward compatibility)
     local CARGO_ENV_STRING="source \${HOME}/.cargo/env"
     log_info "Adding cargo env to ${TARGET_RC_FILE}"
     cond_insert "${CARGO_ENV_STRING}" "${TARGET_RC_FILE}"
 
-    # Add cargo bin to PATH (alternative if sourcing doesn't work)
+    # Add cargo bin to PATH (backward compatibility)
     local PATH_STRING="export PATH=\"\${HOME}/.cargo/bin:\${PATH}\""
     log_info "Adding cargo bin to PATH in ${TARGET_RC_FILE}"
     cond_insert "${PATH_STRING}" "${TARGET_RC_FILE}"
+
+    # Register cargo binaries in system PATH (instant availability)
+    if [ -d "${HOME}/.cargo/bin" ]; then
+        log_info "Registering cargo binaries in /usr/local/bin"
+        for bin in "${HOME}/.cargo/bin"/*; do
+            if [ -f "$bin" ] && [ -x "$bin" ]; then
+                register_bin "$bin"
+            fi
+        done
+    fi
 
     # --- VERIFY INSTALLATION ---
     echo

@@ -40,9 +40,19 @@ install_turbovnc() {
   # Cleanup
   rm -f "/tmp/${TURBOVNC_DEB}"
 
-  # Add TurboVNC to PATH
+  # Add TurboVNC to PATH (backward compatibility)
   local TARGET_RC_FILE="$(get_rc_file)"
   cond_insert 'export PATH="/opt/TurboVNC/bin:${PATH}"' "${TARGET_RC_FILE}"
+
+  # Register TurboVNC binaries in system PATH (instant availability)
+  if [ -d "/opt/TurboVNC/bin" ]; then
+    log_info "Registering TurboVNC binaries in /usr/local/bin"
+    for bin in /opt/TurboVNC/bin/*; do
+      if [ -f "$bin" ] && [ -x "$bin" ]; then
+        register_bin "$bin"
+      fi
+    done
+  fi
 
   log_success "TurboVNC installed successfully"
   log_info "Start server: vncserver"

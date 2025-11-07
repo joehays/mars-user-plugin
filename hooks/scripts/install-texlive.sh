@@ -50,7 +50,7 @@ install_texlive() {
         --scheme="${texlive_scheme}" \
         --texdir="${texlive_install_dir}"
 
-    # Add to PATH
+    # Add to PATH (backward compatibility)
     log_info "Adding TexLive to PATH..."
     local TARGET_RC_FILE="$(get_rc_file)"
 
@@ -61,6 +61,16 @@ export PATH="${bin_dir}:\${PATH}"
 export MANPATH="/usr/local/texlive/texmf-dist/doc/man:\${MANPATH}"
 export INFOPATH="/usr/local/texlive/texmf-dist/doc/info:\${INFOPATH}"
 EOF
+
+    # Register TeXLive binaries in system PATH (instant availability)
+    if [ -d "${bin_dir}" ]; then
+        log_info "Registering TeXLive binaries in /usr/local/bin"
+        for bin in "${bin_dir}"/*; do
+            if [ -f "$bin" ] && [ -x "$bin" ]; then
+                register_bin "$bin"
+            fi
+        done
+    fi
 
     # Install additional packages
     log_info "Installing additional TeX packages..."

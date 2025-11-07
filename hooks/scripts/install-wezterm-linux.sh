@@ -37,9 +37,14 @@ install_wezterm_linux() {
   wget -q "${WEZTERM_URL}" -O "${HOME}/.local/bin/wezterm"
   chmod +x "${HOME}/.local/bin/wezterm"
 
-  # Add to PATH
+  # Add to PATH (backward compatibility)
   local TARGET_RC_FILE="$(get_rc_file)"
   cond_insert 'export PATH="${HOME}/.local/bin:${PATH}"' "${TARGET_RC_FILE}"
+
+  # Register binary in system PATH (instant availability)
+  if [ -f "${HOME}/.local/bin/wezterm" ]; then
+    register_bin "${HOME}/.local/bin/wezterm"
+  fi
 
   log_success "WezTerm AppImage installed successfully"
   log_info "Run with: wezterm"

@@ -35,10 +35,15 @@ install_gemini_cli() {
   log_info "Installing gemini-cli via go..."
   go install github.com/rezkam/gemini-cli/cmd/gemini@latest
 
-  # Add Go bin to PATH if not already there
+  # Add Go bin to PATH (backward compatibility)
   local TARGET_RC_FILE="$(get_rc_file)"
   local GO_BIN_PATH="export PATH=\"\${HOME}/go/bin:\${PATH}\""
   cond_insert "${GO_BIN_PATH}" "${TARGET_RC_FILE}"
+
+  # Register binary in system PATH (instant availability)
+  if [ -f "${HOME}/go/bin/gemini" ]; then
+    register_bin "${HOME}/go/bin/gemini"
+  fi
 
   log_success "Gemini CLI installed successfully"
   log_info "Set API key: export GEMINI_API_KEY='your-key'"

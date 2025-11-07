@@ -76,10 +76,13 @@ install_latest_nvim() {
     echo "Configuring PATH and Alias"
     echo "------------------------------"
 
-    # Add binary path
+    # Add binary path (backward compatibility)
     local PATH_STRING="export PATH=\"\${PATH}:${TARGET_DIR}/bin\""
     echo "Adding PATH: ${PATH_STRING} to ${TARGET_RC_FILE}"
     cond_insert "${PATH_STRING}" "${TARGET_RC_FILE}"
+
+    # Register binary in system PATH (instant availability)
+    register_bin "${TARGET_DIR}/bin/nvim"
 
     # Add alias
     local ALIAS_STRING="alias nv=\"nvim\""

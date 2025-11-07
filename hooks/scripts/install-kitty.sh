@@ -32,12 +32,21 @@ install_kitty() {
 
   # Create symlinks
   log_info "Creating symlinks..."
+  mkdir -p ~/.local/bin
   ln -sf ~/.local/kitty.app/bin/kitty ~/.local/bin/kitty
   ln -sf ~/.local/kitty.app/bin/kitten ~/.local/bin/kitten
 
-  # Add to PATH if needed
+  # Add to PATH (backward compatibility)
   local TARGET_RC_FILE="$(get_rc_file)"
   cond_insert 'export PATH="${HOME}/.local/bin:${PATH}"' "${TARGET_RC_FILE}"
+
+  # Register binaries in system PATH (instant availability)
+  if [ -f "${HOME}/.local/bin/kitty" ]; then
+    register_bin "${HOME}/.local/bin/kitty"
+  fi
+  if [ -f "${HOME}/.local/bin/kitten" ]; then
+    register_bin "${HOME}/.local/bin/kitten"
+  fi
 
   # Create desktop integration (if on host with desktop)
   if [ -d /usr/share/applications ]; then
