@@ -34,8 +34,11 @@ services:
       # Your Custom Mounts (uncomment and customize)
       # ==================================================================
 
-      # CAPRA access token script (read-only)
+      # CAPRA credentials (read-only) - individual files only
       - ~/dev/joe-docs/dev-ops/get_capra_access_token.sh:/root/dev/joe-docs/dev-ops/get_capra_access_token.sh:ro
+      - ~/dev/joe-docs/dev-ops/capra_access_token:/root/dev/joe-docs/dev-ops/capra_access_token:ro
+      - ~/dev/joe-docs/dev-ops/capra-api-key:/root/dev/joe-docs/dev-ops/capra-api-key:ro
+      - ~/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:/root/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:ro
 
       # Dotfiles (read-write for LazyVim configuration)
       - ~/dev/dotfiles/LazyVim-starter:/root/.config/nvim:rw

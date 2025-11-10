@@ -26,6 +26,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Source utilities for consistent logging
 source "${SCRIPT_DIR}/scripts/utils.sh"
 
+# Source plugin configuration
+PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
+source "${PLUGIN_ROOT}/config.sh"
+
 # Override log function prefix for container-startup context
 log_info() {
     echo -e "${BLUE}[joehays-plugin:container-startup]${NC} $*"
@@ -48,6 +52,40 @@ declare -a SYMLINK_PAIRS=(
     "/root/dev:/home/mars/dev"
     "/workspace/mars-v2:/root/dev/mars-v2"
 )
+
+# =============================================================================
+# Zellij Layout Symlink Setup (Root User Only)
+# =============================================================================
+setup_zellij_layout_symlink() {
+    log_info "Setting up Zellij layout symlink..."
+
+    local ZELLIJ_LAYOUT_SOURCE="/workspace/mars-v2/external/mars-user-plugin/mars-dev-zellij.kdl"
+    local ZELLIJ_LAYOUT_TARGET="/root/.config/zellij/layouts/mars-dev-zellij.kdl"
+
+    # Check if source layout exists
+    if [ ! -f "${ZELLIJ_LAYOUT_SOURCE}" ]; then
+        log_warning "Zellij layout not found at: ${ZELLIJ_LAYOUT_SOURCE}"
+        log_warning "Skipping Zellij layout symlink setup"
+        return 0
+    fi
+
+    # Create target directory if it doesn't exist
+    mkdir -p "$(dirname "${ZELLIJ_LAYOUT_TARGET}")"
+
+    # Check if symlink already exists and is correct
+    if [ -L "${ZELLIJ_LAYOUT_TARGET}" ] && [ "$(readlink -f "${ZELLIJ_LAYOUT_TARGET}")" = "${ZELLIJ_LAYOUT_SOURCE}" ]; then
+        log_info "Zellij layout symlink already correct: ${ZELLIJ_LAYOUT_TARGET}"
+        return 0
+    fi
+
+    # Remove existing symlink/file if it exists
+    rm -f "${ZELLIJ_LAYOUT_TARGET}"
+
+    # Create symlink
+    ln -s "${ZELLIJ_LAYOUT_SOURCE}" "${ZELLIJ_LAYOUT_TARGET}"
+
+    log_success "Created Zellij layout symlink: ${ZELLIJ_LAYOUT_TARGET} → ${ZELLIJ_LAYOUT_SOURCE}"
+}
 
 # =============================================================================
 # LazyVim First-Run Setup
@@ -77,10 +115,72 @@ setup_lazyvim_first_run() {
 }
 
 # =============================================================================
+# Credentials Group Setup (joe-docs)
+# =============================================================================
+setup_credentials_group() {
+    log_info "Setting up credentials group for multi-instance access..."
+
+    # Get HOST_UID from environment (set by mars-env.config or docker-compose)
+    local host_uid="${HOST_UID:-10227}"
+
+    # Calculate Sysbox-adjusted GID
+    # Container GID = Host GID - HOST_UID (due to Sysbox offset mapping)
+    local container_gid=$((MARS_USER_CREDENTIALS_GID - host_uid))
+
+    log_info "Creating ${MARS_USER_CREDENTIALS_GROUP} group (container GID: ${container_gid}, maps to host GID: ${MARS_USER_CREDENTIALS_GID})..."
+
+    # Check if group already exists
+    if getent group "${MARS_USER_CREDENTIALS_GROUP}" &>/dev/null; then
+        local existing_gid
+        existing_gid=$(getent group "${MARS_USER_CREDENTIALS_GROUP}" | cut -d: -f3)
+
+        if [ "$existing_gid" = "$container_gid" ]; then
+            log_info "Group ${MARS_USER_CREDENTIALS_GROUP} already exists with correct GID"
+        else
+            log_warning "Group ${MARS_USER_CREDENTIALS_GROUP} exists with wrong GID: $existing_gid (expected $container_gid)"
+            log_warning "Recreating group..."
+            groupdel "${MARS_USER_CREDENTIALS_GROUP}" 2>/dev/null || true
+            groupadd -g "$container_gid" "${MARS_USER_CREDENTIALS_GROUP}"
+            log_success "Recreated group ${MARS_USER_CREDENTIALS_GROUP}"
+        fi
+    else
+        # Create group with Sysbox-adjusted GID
+        groupadd -g "$container_gid" "${MARS_USER_CREDENTIALS_GROUP}"
+        log_success "Created group ${MARS_USER_CREDENTIALS_GROUP} (GID: ${container_gid})"
+    fi
+
+    # Add mars user to joe-docs group
+    log_info "Adding mars user to ${MARS_USER_CREDENTIALS_GROUP} group..."
+
+    if id mars &>/dev/null; then
+        if groups mars | grep -q "\b${MARS_USER_CREDENTIALS_GROUP}\b"; then
+            log_info "mars user already in ${MARS_USER_CREDENTIALS_GROUP} group"
+        else
+            usermod -a -G "${MARS_USER_CREDENTIALS_GROUP}" mars
+            log_success "Added mars user to ${MARS_USER_CREDENTIALS_GROUP} group"
+        fi
+    else
+        log_warning "mars user not found - skipping group membership"
+    fi
+
+    # Verify setup
+    log_info "Verifying credentials group setup..."
+    if getent group "${MARS_USER_CREDENTIALS_GROUP}" | grep -q mars; then
+        log_success "Credentials group ready: mars user has access to mounted credential files"
+    else
+        log_warning "Credentials group verification incomplete"
+    fi
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
     log_info "Setting up multi-user plugin access..."
+
+    # Setup credentials group first (needed for file access)
+    setup_credentials_group
+    echo ""
 
     # Check if mars user exists
     if ! id mars &>/dev/null; then
@@ -156,6 +256,9 @@ main() {
     else
         log_warning "Plugin accessibility verification failed"
     fi
+
+    # Setup Zellij layout symlink
+    setup_zellij_layout_symlink
 
     # Run LazyVim first-run setup if needed
     setup_lazyvim_first_run

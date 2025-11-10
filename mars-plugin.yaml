@@ -11,6 +11,8 @@ hooks:
   user-setup: hooks/user-setup.sh
   pre-up: hooks/pre-up.sh
   container-startup: hooks/container-startup.sh
+  host-permissions: hooks/host-permissions.sh
+  env-setup: hooks/env-setup.sh
 
 # Error handling
 # Set to false to continue on errors (recommended for optional packages)
