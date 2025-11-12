@@ -130,38 +130,39 @@ main() {
     echo ""
 
     # Optional tools (only if personal tools are enabled)
+    # All optional installations use || true to prevent script exit on failure
     if [ "${INSTALL_NVIM}" = true ]; then
       log_info "Installing Neovim..."
       source "${SCRIPT_DIR}/scripts/install-nvim.sh"
-      install_latest_nvim
+      install_latest_nvim || true
       echo ""
     fi
 
     if [ "${INSTALL_LAZYVIM}" = true ]; then
       log_info "Installing LazyVim..."
       source "${SCRIPT_DIR}/scripts/install-lazyvim.sh"
-      install_lazyvim
+      install_lazyvim || true
       echo ""
     fi
 
     if [ "${INSTALL_OHMYZSH}" = true ]; then
       log_info "Installing Oh My Zsh..."
       source "${SCRIPT_DIR}/scripts/install-ohmyzsh.sh"
-      install_ohmyzsh
+      install_ohmyzsh || true
       echo ""
     fi
 
     if [ "${INSTALL_TLDR}" = true ]; then
       log_info "Installing tldr client..."
       source "${SCRIPT_DIR}/scripts/install-tldr.sh"
-      install_tldr_client
+      install_tldr_client || true
       echo ""
     fi
 
     if [ "${INSTALL_RUST}" = true ]; then
       log_info "Installing Rust and Cargo..."
       source "${SCRIPT_DIR}/scripts/install-rust.sh"
-      install_rust
+      install_rust || true
       echo ""
     fi
 
@@ -169,42 +170,42 @@ main() {
     if [ "${INSTALL_DELTA}" = true ]; then
       log_info "Installing git-delta..."
       source "${SCRIPT_DIR}/scripts/install-delta.sh"
-      install_delta
+      install_delta || true
       echo ""
     fi
 
     if [ "${INSTALL_LAZYGIT}" = true ]; then
       log_info "Installing lazygit..."
       source "${SCRIPT_DIR}/scripts/install-lazygit.sh"
-      install_lazygit
+      install_lazygit || true
       echo ""
     fi
 
     if [ "${INSTALL_LAZYDOCKER}" = true ]; then
       log_info "Installing lazydocker..."
       source "${SCRIPT_DIR}/scripts/install-lazydocker.sh"
-      install_lazydocker
+      install_lazydocker || true
       echo ""
     fi
 
     if [ "${INSTALL_GLOW}" = true ]; then
       log_info "Installing glow..."
       source "${SCRIPT_DIR}/scripts/install-glow.sh"
-      install_glow
+      install_glow || true
       echo ""
     fi
 
     if [ "${INSTALL_FIRACODE}" = true ]; then
       log_info "Installing Fira Code font..."
       source "${SCRIPT_DIR}/scripts/install-firacode.sh"
-      install_firacode
+      install_firacode || log_warn "Fira Code installation failed (non-critical, continuing...)"
       echo ""
     fi
 
     if [ "${INSTALL_NERDFONTS}" = true ]; then
       log_info "Installing Nerd Fonts..."
       source "${SCRIPT_DIR}/scripts/install-nerdfonts.sh"
-      install_nerdfonts
+      install_nerdfonts || log_warn "Nerd Fonts installation failed (non-critical, continuing...)"
       echo ""
     fi
 
@@ -321,28 +322,28 @@ main() {
     if [ "${INSTALL_KIWIX}" = true ]; then
       log_info "Installing Kiwix..."
       source "${SCRIPT_DIR}/scripts/install-kiwix.sh"
-      install_kiwix
+      install_kiwix || true
       echo ""
     fi
 
     if [ "${INSTALL_TURBOVNC}" = true ]; then
       log_info "Installing TurboVNC..."
       source "${SCRIPT_DIR}/scripts/install-turbovnc.sh"
-      install_turbovnc
+      install_turbovnc || true
       echo ""
     fi
 
     if [ "${INSTALL_UBUNTU_GNOME}" = true ]; then
       log_info "Installing Ubuntu GNOME Desktop..."
       source "${SCRIPT_DIR}/scripts/install-ubuntu-gnome-desktop.sh"
-      install_ubuntu_gnome_desktop
+      install_ubuntu_gnome_desktop || true
       echo ""
     fi
 
     if [ "${INSTALL_ICEWM}" = true ]; then
       log_info "Installing IceWM..."
       source "${SCRIPT_DIR}/scripts/install-icewm.sh"
-      install_icewm
+      install_icewm || true
       echo ""
     fi
 
