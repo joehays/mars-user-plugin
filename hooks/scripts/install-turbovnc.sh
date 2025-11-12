@@ -25,11 +25,11 @@ install_turbovnc() {
     return 0
   fi
 
-  # Download TurboVNC
+  # Download TurboVNC from GitHub releases
   log_info "Downloading TurboVNC..."
-  local TURBOVNC_VERSION="3.1.1"
+  local TURBOVNC_VERSION="3.2.1"
   local TURBOVNC_DEB="turbovnc_${TURBOVNC_VERSION}_amd64.deb"
-  local TURBOVNC_URL="https://sourceforge.net/projects/turbovnc/files/${TURBOVNC_VERSION}/${TURBOVNC_DEB}/download"
+  local TURBOVNC_URL="https://github.com/TurboVNC/turbovnc/releases/download/${TURBOVNC_VERSION}/${TURBOVNC_DEB}"
 
   wget -q "${TURBOVNC_URL}" -O "/tmp/${TURBOVNC_DEB}"
 
