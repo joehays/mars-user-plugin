@@ -34,9 +34,10 @@ services:
       # Your Custom Mounts (uncomment and customize)
       # ==================================================================
 
-      # CAPRA credentials (read-only) - individual files only
+      # CAPRA credentials - individual files only
+      # Note: capra_access_token needs rw for token caching by get_capra_access_token.sh
       - ~/dev/joe-docs/dev-ops/get_capra_access_token.sh:/root/dev/joe-docs/dev-ops/get_capra_access_token.sh:ro
-      - ~/dev/joe-docs/dev-ops/capra_access_token:/root/dev/joe-docs/dev-ops/capra_access_token:ro
+      - ~/dev/joe-docs/dev-ops/capra_access_token:/root/dev/joe-docs/dev-ops/capra_access_token:rw
       - ~/dev/joe-docs/dev-ops/capra-api-key:/root/dev/joe-docs/dev-ops/capra-api-key:ro
       - ~/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:/root/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:ro
 
