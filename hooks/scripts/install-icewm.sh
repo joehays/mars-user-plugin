@@ -32,7 +32,6 @@ install_icewm() {
   log_info "Installing IceWM and components..."
   DEBIAN_FRONTEND=noninteractive apt-get install -y \
     icewm \
-    icewm-themes \
     icewm-common \
     lightdm
 
