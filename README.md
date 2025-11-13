@@ -409,6 +409,214 @@ icewm-session &
 - **Dockerfile**: `mars-dev/dev-environment/Dockerfile` (Stage 7.6: VNC + IceWM Configuration)
 - **X11 Resources**: `hooks/.Xresources` (Display customization)
 
+## IceWM Desktop Background Customization
+
+### Overview
+
+The mars-dev container uses IceWM as the lightweight window manager for VNC sessions. You can customize the desktop background and IceWM preferences via this plugin.
+
+**Default behavior:** If no customization is provided, MARS uses a dark blue-gray gradient background (#1a1a2e → #16213e).
+
+**Custom behavior:** Plugin can override background image and/or IceWM preferences.
+
+### Quick Start: Custom Background
+
+**Add a custom desktop wallpaper:**
+
+```bash
+# 1. Copy your background image to plugin config
+cp ~/Pictures/my-wallpaper.png hooks/config/icewm/backgrounds/custom.png
+
+# 2. Rebuild mars-dev container
+cd ~/dev/mars-v2
+mars-dev build
+mars-dev down && mars-dev up -d
+
+# 3. Connect via VNC to see custom background
+ssh -L 5901:localhost:5901 -p 18102 root@<host_ip>
+# VNC viewer: localhost:5901 (password: password)
+```
+
+**Supported image formats:**
+- PNG (recommended, lossless)
+- JPG/JPEG (smaller file size)
+- SVG (vector, resolution-independent)
+
+**Required filename:** Must be named `custom.{png,jpg,jpeg,svg}`
+
+### Advanced: Custom IceWM Preferences
+
+**Customize taskbar, window behavior, workspaces:**
+
+```bash
+# Create custom preferences file
+cat > hooks/config/icewm/preferences << 'EOF'
+# Taskbar settings
+TaskBarAutoHide=1            # Auto-hide taskbar
+TaskBarAtTop=1               # Taskbar at top (0=bottom, 1=top)
+TaskBarShowWorkspaces=1      # Show workspace buttons
+
+# Window behavior
+FocusMode=2                  # 0=click, 1=sloppy, 2=explicit
+RaiseOnFocus=1               # Raise window when focused
+
+# Workspaces
+WorkspaceNames=" Dev "," Test "," Docs "," Misc "
+
+# Theme
+Theme="default/default.theme"
+EOF
+
+# Rebuild to apply
+mars-dev build
+```
+
+**Background path is automatically set** - the configure script updates `DesktopBackgroundImage` to point to your custom image (or MARS default).
+
+### Directory Structure
+
+```
+hooks/config/icewm/
+├── backgrounds/
+│   ├── custom.png          # Your custom background (optional, git-ignored)
+│   └── .gitignore          # Ignores custom.* files
+├── preferences             # Custom IceWM preferences (optional)
+└── README.md               # Detailed documentation and examples
+```
+
+### How It Works
+
+**Build-time flow:**
+
+1. **Dockerfile** installs MARS default background + configuration script
+2. **Plugin hook** (user-setup.sh) calls `configure-icewm.sh`
+3. **configure-icewm.sh** detects plugin customization:
+   - If `custom.{png,jpg,svg}` exists → uses it
+   - Otherwise → uses MARS default gradient
+   - If `preferences` exists → uses it (with background path added)
+   - Otherwise → uses MARS default preferences
+
+**Result:** Custom background and/or preferences baked into image
+
+### Background Scaling Options
+
+Set in `preferences` file to control how background is displayed:
+
+```bash
+# Scaled to fit (recommended, maintains aspect ratio)
+DesktopBackgroundScaled=1
+DesktopBackgroundCenter=1
+
+# Tiled (repeating pattern, good for small textures)
+DesktopBackgroundScaled=0
+DesktopBackgroundCenter=0
+
+# Centered (no scaling, shows background color around edges)
+DesktopBackgroundScaled=0
+DesktopBackgroundCenter=1
+```
+
+### Examples
+
+**Example 1: Simple background change**
+
+```bash
+wget https://example.com/wallpaper.jpg -O hooks/config/icewm/backgrounds/custom.jpg
+mars-dev build
+```
+
+**Example 2: Solid color background**
+
+```bash
+# Create 1x1 solid color PNG (will be scaled by IceWM)
+python3 << 'PYTHON'
+import struct, zlib
+def create_png(r, g, b, f):
+    sig = b'\x89PNG\r\n\x1a\n'
+    ihdr = struct.pack('>IIBBBBB', 1, 1, 8, 2, 0, 0, 0)
+    idat = b'IDAT' + zlib.compress(bytes([0, r, g, b]))
+    with open(f, 'wb') as out:
+        out.write(sig + struct.pack('>I', 13) + b'IHDR' + ihdr +
+                  struct.pack('>I', 0xFC18EDA3) + struct.pack('>I', len(idat)-4) +
+                  idat + struct.pack('>I', 0) + b'IEND' + struct.pack('>I', 0xAE426082))
+
+# Dark purple background
+create_png(0x2d, 0x1b, 0x4e, 'hooks/config/icewm/backgrounds/custom.png')
+PYTHON
+
+mars-dev build
+```
+
+**Example 3: Minimalist desktop**
+
+```bash
+# Add background
+cp ~/space.png hooks/config/icewm/backgrounds/custom.png
+
+# Minimal preferences
+cat > hooks/config/icewm/preferences << 'EOF'
+TaskBarAutoHide=1
+TaskBarAtTop=1
+FocusMode=2
+ShowTaskBar=1
+WorkspaceNames=" 1 "," 2 "
+EOF
+
+mars-dev build
+```
+
+### Verification
+
+**Check applied background:**
+
+```bash
+# SSH into container
+ssh -p 18102 root@<host_ip>
+
+# View background setting
+cat /root/.icewm/preferences | grep DesktopBackgroundImage
+# Output: DesktopBackgroundImage="/root/.icewm/backgrounds/current-background.png"
+
+# Verify background file exists
+ls -lh /root/.icewm/backgrounds/
+# Should show: current-background.{png,jpg,svg}
+```
+
+**Check build logs:**
+
+During `mars-dev build`, you should see:
+
+```
+[icewm-config] INFO: Configuring IceWM window manager...
+[icewm-config] INFO: Found plugin custom background: custom.png
+[icewm-config] ✓ Installed custom background: custom.png
+[icewm-config] ✓ IceWM configuration complete
+
+IceWM Configuration Summary:
+  Background: Custom (plugin)
+  Preferences: Default (MARS)
+```
+
+### Troubleshooting
+
+**Background not appearing:**
+
+1. **Check filename** - must be `custom.{png,jpg,jpeg,svg}` exactly
+2. **Check build logs** - look for `[icewm-config]` messages
+3. **Verify file copied** - `docker exec mars-dev ls /root/.icewm/backgrounds/`
+
+**Custom preferences ignored:**
+
+1. **No file extension** - must be named `preferences` (not `preferences.txt`)
+2. **Check build logs** - should see "Found plugin custom preferences"
+
+### Related Documentation
+
+- **Plugin Guide**: `hooks/config/icewm/README.md` (comprehensive examples)
+- **Implementation**: `mars-dev/docs/ICEWM_CUSTOM_BACKGROUND.md` (technical details)
+- **IceWM Manual**: https://ice-wm.org/man/icewm-preferences
+- **Dev Environment**: `mars-dev/dev-environment/README.md` (VNC setup)
+
 ## Troubleshooting
 
 ### Plugin Not Executing

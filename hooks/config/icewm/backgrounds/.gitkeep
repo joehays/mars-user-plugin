@@ -1,0 +1,2 @@
+# This file ensures the backgrounds/ directory is tracked by git
+# Even though custom.* files are git-ignored, this directory structure is important

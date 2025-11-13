@@ -345,6 +345,14 @@ main() {
       source "${SCRIPT_DIR}/scripts/install-icewm.sh"
       install_icewm || true
       echo ""
+
+      # Configure IceWM (applies plugin customization if available, otherwise defaults)
+      # Script is in /usr/local/bin (installed by Dockerfile)
+      if command -v configure-icewm.sh >/dev/null 2>&1; then
+        log_info "Configuring IceWM with plugin customization..."
+        configure-icewm.sh || log_warn "IceWM configuration failed (non-critical)"
+        echo ""
+      fi
     fi
 
     # Low-priority Image display tools

@@ -1,0 +1,118 @@
+# =============================================================================
+# IceWM Preferences Example
+# =============================================================================
+# This is an EXAMPLE file showing how to customize IceWM preferences.
+# To use: Copy to 'preferences' (no extension) and customize as needed.
+#
+# Example usage:
+#   cp preferences.example preferences
+#   vim preferences  # Edit as needed
+#   mars-dev build   # Rebuild to apply
+#
+# Documentation: https://ice-wm.org/man/icewm-preferences
+# =============================================================================
+
+# =============================================================================
+# Desktop Background (auto-configured by configure-icewm.sh)
+# =============================================================================
+# Note: DesktopBackgroundImage is automatically set by the configuration script
+# based on whether you provide a custom background image or use MARS default.
+# You can override these scaling settings:
+
+# Background scaling mode
+# 0 = Tiled (repeating pattern)
+# 1 = Scaled to fit (maintains aspect ratio, recommended)
+DesktopBackgroundScaled=1
+DesktopBackgroundCenter=1
+
+# Fallback background color (used if image fails to load)
+DesktopBackgroundColor="rgb:1a/1a/2e"
+
+# =============================================================================
+# Taskbar Settings
+# =============================================================================
+# Show taskbar
+ShowTaskBar=1
+
+# Auto-hide taskbar (0=disabled, 1=enabled)
+TaskBarAutoHide=0
+
+# Taskbar position (0=bottom, 1=top)
+TaskBarAtTop=0
+
+# Show workspace buttons on taskbar
+TaskBarShowWorkspaces=1
+
+# Show window list on taskbar
+TaskBarShowWindows=1
+
+# Show clock on taskbar
+TaskBarShowClock=1
+
+# Show CPU status monitor
+TaskBarShowCPUStatus=1
+
+# Show network status
+TaskBarShowNetStatus=1
+
+# =============================================================================
+# Window Behavior
+# =============================================================================
+# Focus mode
+# 0 = Click to focus (Windows-style)
+# 1 = Sloppy focus (focus follows mouse, click to raise)
+# 2 = Explicit focus (focus follows mouse strictly)
+FocusMode=1
+
+# Raise window on focus
+RaiseOnFocus=1
+
+# Focus on click (raise window)
+RaiseOnClickClient=1
+
+# =============================================================================
+# Workspace Settings
+# =============================================================================
+# Number of virtual desktops/workspaces
+# Customize names as needed
+WorkspaceNames=" Dev "," Test "," Docs "," Misc "
+
+# =============================================================================
+# Theme
+# =============================================================================
+# IceWM theme (use "default" or installed theme name)
+Theme="default/default.theme"
+
+# =============================================================================
+# Mouse and Keyboard
+# =============================================================================
+# Use mouse wheel to switch workspaces
+UseMouseWheel=1
+
+# =============================================================================
+# Performance
+# =============================================================================
+# Delay before showing menu (milliseconds)
+DelayPointerFocus=200
+
+# Double-click time (milliseconds)
+DoubleClickTime=400
+
+# =============================================================================
+# Example Customizations
+# =============================================================================
+# Uncomment and modify as needed:
+
+# Minimalist desktop (auto-hide taskbar at top)
+# TaskBarAutoHide=1
+# TaskBarAtTop=1
+
+# More workspaces
+# WorkspaceNames=" 1 "," 2 "," 3 "," 4 "," 5 "," 6 "
+
+# Explicit focus (focus strictly follows mouse)
+# FocusMode=2
+
+# =============================================================================
+# End of preferences.example
+# =============================================================================
