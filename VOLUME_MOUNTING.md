@@ -9,6 +9,112 @@ The plugin supports mounting **user-specified volumes** into the E6 container th
 3. **Docker Compose**: Automatically merges override file with main `docker-compose.yml`
 4. **Result**: Your custom volumes are mounted when container starts
 
+## Multi-User Access Pattern (Symlinks + Group Ownership)
+
+**IMPORTANT PATTERN**: For files that need to be accessible to both `root` and `mars` users, use **single mount + symlink + group ownership** instead of duplicate mounts.
+
+### Architecture
+
+1. **Mount to root only**: Files mounted at `/root/dev/...`
+2. **Symlink for mars user**: `container-startup.sh` creates `/home/mars/dev` → `/root/dev`
+3. **Group ownership**: Files owned by `joe-docs` group (GID 54556)
+4. **Group membership**: Mars user added to `joe-docs` group
+
+### Pattern Implementation
+
+**✅ CORRECT - Single mount with symlink**:
+```yaml
+services:
+  mars-dev:
+    volumes:
+      # Mount credential files to /root/dev (single source of truth)
+      - ~/dev/joe-docs/dev-ops/get_capra_access_token.sh:/root/dev/joe-docs/dev-ops/get_capra_access_token.sh:ro
+      - ~/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:/root/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:ro
+
+      # No duplicate mars user mounts needed!
+      # Mars user accesses via /home/mars/dev/... symlink
+```
+
+**❌ WRONG - Duplicate mounts**:
+```yaml
+services:
+  mars-dev:
+    volumes:
+      # Mounting same file twice - creates potential for desync
+      - ~/dev/joe-docs/dev-ops/token.sh:/root/dev/joe-docs/dev-ops/token.sh:ro
+      - ~/dev/joe-docs/dev-ops/token.sh:/home/mars/dev/joe-docs/dev-ops/token.sh:ro  # ❌ DON'T DO THIS
+```
+
+### How It Works
+
+**Container Startup** (`hooks/container-startup.sh`):
+```bash
+# Creates symlink (line 52-53 in container-startup.sh)
+ln -s /root/dev /home/mars/dev
+chown -h mars:mars /home/mars/dev
+
+# Creates joe-docs group with Sysbox-adjusted GID
+groupadd -g $container_gid joe-docs
+
+# Adds mars user to joe-docs group
+usermod -a -G joe-docs mars
+```
+
+**Result**:
+- Root accesses: `/root/dev/joe-docs/dev-ops/token.sh` (direct mount)
+- Mars accesses: `/home/mars/dev/joe-docs/dev-ops/token.sh` (via symlink)
+- Both point to same file (single source of truth)
+- Mars has read access via group membership
+
+### Benefits
+
+1. **Single source of truth**: Only one mount point
+2. **No desync risk**: Impossible for versions to diverge
+3. **Proper Unix model**: Groups + symlinks (standard pattern)
+4. **Cleaner configuration**: Fewer duplicate mounts in docker-compose.override.yml
+5. **Easier maintenance**: Update mount once, applies to both users
+
+### Use Cases
+
+This pattern is essential for:
+- **Credential files** (CAPRA tokens, API keys, certificates)
+- **Configuration files** (shared between root and mars user)
+- **Scripts** (executable by both users)
+- **Any file needed by autonomous sessions** (sessions run as mars user)
+
+### Implementation Checklist
+
+When adding new files that need multi-user access:
+
+1. ✅ Mount file to `/root/dev/...` in `docker-compose.override.yml.template`
+2. ✅ Set appropriate group ownership on **host** (via `hooks/host-permissions.sh`)
+3. ✅ Verify group permissions allow read/write as needed
+4. ❌ Do NOT create duplicate mount to `/home/mars/...`
+5. ✅ Document in override template that symlink provides mars access
+
+**Example**:
+```yaml
+# In docker-compose.override.yml.template
+volumes:
+  # New credential file - mount to /root/dev only
+  - ~/dev/joe-docs/dev-ops/new-credential.txt:/root/dev/joe-docs/dev-ops/new-credential.txt:ro
+
+  # Note: Mars user accesses via /home/mars/dev/joe-docs/dev-ops/new-credential.txt (symlink)
+```
+
+### Verification
+
+After container launch, verify access:
+```bash
+# From root user
+cat /root/dev/joe-docs/dev-ops/token.sh
+
+# From mars user
+mars-dev exec -u mars mars-dev cat /home/mars/dev/joe-docs/dev-ops/token.sh
+
+# Both should work and show same content
+```
+
 ## Quick Setup
 
 ### 1. Enable Volume Mounting (Default: ON)

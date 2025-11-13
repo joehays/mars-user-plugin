@@ -16,3 +16,8 @@ Thumbs.db
 # Test files
 test-output/
 *.test
+
+# Secrets and passwords
+# VNC password file (contains plain text password)
+hooks/.vnc-password
+.vnc-password

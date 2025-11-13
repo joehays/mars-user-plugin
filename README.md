@@ -135,6 +135,280 @@ INSTALL_TEXLIVE=true  # Change from false to true
 
 **Warning**: This adds ~7GB to the container image and takes 30-60 minutes to install.
 
+## VNC Password Configuration
+
+### Overview
+
+The mars-dev container includes TurboVNC server with IceWM window manager for GUI access. By default, the VNC password is set to `password`. You can customize this using the plugin.
+
+### Setting Custom VNC Password
+
+**Method 1: Plugin Password File (Recommended)**
+
+Create a `.vnc-password` file in the plugin's `hooks/` directory:
+
+```bash
+# Create VNC password file
+echo "my-secure-password" > hooks/.vnc-password
+
+# Rebuild mars-dev image
+cd ~/dev/mars-v2
+mars-dev build
+```
+
+**Method 2: Environment Variable (One-Time)**
+
+```bash
+# Set password via environment variable
+MARS_VNC_PASSWORD="my-secure-password" mars-dev build
+```
+
+### Password Priority
+
+The mars-dev build process checks for VNC password in this order:
+
+1. **`MARS_VNC_PASSWORD`** environment variable (highest priority)
+2. **`hooks/.vnc-password`** file in plugin directory
+3. **Default:** `password`
+
+### Build-Time vs Runtime Password Changes
+
+**Build-Time (Permanent):**
+- Password is baked into the container image
+- Persists across container restarts and recreations
+- Use plugin password file or environment variable during build
+
+**Runtime (Ephemeral):**
+- Can change password in running container using `vncpasswd`
+- Lost when container is rebuilt or recreated
+- Useful for temporary password changes
+
+```bash
+# Change password in running container (ephemeral)
+ssh -p 18102 root@<host_ip>
+vncpasswd
+# Enter new password twice
+
+# Restart VNC server
+vncserver -kill :1
+vncserver :1 -localhost -wm icewm -geometry 1920x1080 -depth 24
+```
+
+### Security Best Practices
+
+✅ **Use strong passwords** - Minimum 12 characters, mix of letters/numbers/symbols
+✅ **Unique passwords** - Different from SSH, system, and other passwords
+✅ **Don't commit to git** - Add `.vnc-password` to `.gitignore`
+✅ **Localhost-only VNC** - Always access via SSH tunnel (configured by default)
+
+### Example: Secure Password Setup
+
+```bash
+# Generate strong random password (20 characters)
+openssl rand -base64 20 > hooks/.vnc-password
+
+# View the password (save to password manager)
+cat hooks/.vnc-password
+
+# Add to .gitignore (if not already present)
+echo "hooks/.vnc-password" >> .gitignore
+
+# Build with custom password
+cd ~/dev/mars-v2
+mars-dev build
+
+# Connect via SSH tunnel
+ssh -L 5901:localhost:5901 -p 18102 root@<host_ip>
+
+# VNC viewer: localhost:5901
+# Password: <paste from password manager>
+```
+
+### Verification
+
+During build, you should see one of these messages:
+
+```
+VNC password found in plugin: external/mars-user-plugin/hooks/.vnc-password
+Custom VNC password will be configured at build time
+```
+
+```
+VNC password from environment variable: MARS_VNC_PASSWORD
+```
+
+```
+Using default VNC password: 'password'
+```
+
+### Related Files
+
+- **Password file**: `hooks/.vnc-password` (create this file)
+- **X11 resources**: `hooks/.Xresources` (VNC display customization)
+- **VNC xstartup**: Configured in mars-dev Dockerfile (auto-loads .Xresources, starts IceWM)
+
+**See**: `mars-dev/dev-environment/README.md` for complete VNC/SSH setup guide.
+
+## Clipboard Integration (VNC Copy/Paste)
+
+### Overview
+
+The mars-dev VNC session includes **automatic clipboard synchronization** between your local machine and the VNC desktop. This is essential for:
+- **Pasting GitLab passwords** (48-character root password!)
+- **Copying error messages** from VNC to host for debugging
+- **Transferring code snippets, URLs, and commands**
+- **Working with web applications** (GitLab CE, MLflow, etc.)
+
+### Features
+
+✅ **Bidirectional clipboard** - Copy/paste works in both directions
+✅ **Multi-format support** - Text, URLs, and formatted content
+✅ **Automatic startup** - Clipboard daemons auto-start with VNC
+✅ **X11 integration** - Supports both PRIMARY (select) and CLIPBOARD (Ctrl+C) buffers
+✅ **Command-line tools** - `xclip` for scripting clipboard operations
+
+### Quick Start
+
+**Current VNC Session:**
+
+If you're in a VNC session and clipboard isn't working:
+
+```bash
+# Start clipboard daemon
+autocutsel -fork
+
+# Test it works
+echo "Clipboard test!" | xclip -selection clipboard
+xclip -selection clipboard -o
+```
+
+**Future Builds:**
+
+Clipboard is **pre-configured** in Dockerfile and auto-starts. No action needed after rebuild.
+
+### Common Use Case: Pasting GitLab Password
+
+**Problem**: GitLab root password is 48 characters and impossible to type manually:
+```
+f3KLb18LMCERhdBxVnai6Ommku86N50GUnLjddyWTEQ=
+```
+
+**Solution**: Use clipboard
+
+1. **Start clipboard daemon** (if not running):
+   ```bash
+   autocutsel -fork
+   ```
+
+2. **Copy password** from documentation (on Windows/Mac)
+
+3. **Open GitLab** in VNC browser:
+   ```bash
+   google-chrome http://localhost:9080 &
+   ```
+
+4. **Paste password** in login form (Ctrl+V)
+
+### Architecture
+
+The clipboard system has three layers:
+
+1. **VNC Protocol Clipboard** (TurboVNC)
+   - Built-in clipboard sync between VNC client and server
+   - No configuration needed
+
+2. **X11 Clipboard Sync** (autocutsel)
+   - Syncs X11 PRIMARY and CLIPBOARD buffers
+   - Auto-starts via VNC xstartup script
+   - Install: `apt-get install autocutsel` (in Dockerfile)
+
+3. **CLI Tools** (xclip)
+   - Programmatic clipboard access
+   - Usage: `echo "text" | xclip -selection clipboard`
+   - Install: `apt-get install xclip` (in Dockerfile)
+
+### Testing Clipboard
+
+**Test 1: Within VNC**
+```bash
+# Copy text to clipboard
+echo "Hello from VNC!" | xclip -selection clipboard
+
+# Read clipboard
+xclip -selection clipboard -o
+```
+
+**Test 2: Windows → VNC**
+1. Copy text on Windows (Ctrl+C)
+2. Paste in VNC application (Ctrl+V)
+
+**Test 3: VNC → Windows**
+1. Select/copy text in VNC (Ctrl+C)
+2. Paste on Windows (Ctrl+V)
+
+### Troubleshooting
+
+**Issue: Clipboard not working after VNC restart**
+
+```bash
+# Check if autocutsel is running
+ps aux | grep autocutsel
+
+# Start if not running
+autocutsel -fork
+
+# Verify DISPLAY is set
+echo $DISPLAY  # Should show :1
+```
+
+**Issue: Can paste into VNC but not out of VNC**
+
+```bash
+# Restart autocutsel
+pkill autocutsel
+autocutsel -fork
+
+# Test bidirectional
+echo "Test" | xclip -selection clipboard
+xclip -selection clipboard -o
+```
+
+### Implementation Details
+
+**Dockerfile Configuration** (`mars-dev/dev-environment/Dockerfile`):
+
+```dockerfile
+# Install clipboard tools
+RUN apt-get update && \
+    apt-get install -y autocutsel xclip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Add autocutsel to VNC xstartup
+RUN echo 'autocutsel -fork' >> /root/.vnc/xstartup
+```
+
+**VNC Xstartup Script** (`/root/.vnc/xstartup`):
+
+```bash
+#!/bin/bash
+# Load .Xresources (if exists)
+if [ -f "$HOME/.Xresources" ]; then
+    xrdb "$HOME/.Xresources"
+fi
+
+# Start clipboard daemon
+autocutsel -fork
+
+# Start IceWM window manager
+icewm-session &
+```
+
+### Related Documentation
+
+- **Complete Guide**: `mars-dev/dev-environment/README.md` (Clipboard Integration section)
+- **Dockerfile**: `mars-dev/dev-environment/Dockerfile` (Stage 7.6: VNC + IceWM Configuration)
+- **X11 Resources**: `hooks/.Xresources` (Display customization)
+
 ## Troubleshooting
 
 ### Plugin Not Executing

@@ -41,11 +41,24 @@ services:
       - ~/dev/joe-docs/dev-ops/capra-api-key:/root/dev/joe-docs/dev-ops/capra-api-key:ro
       - ~/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:/root/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:ro
 
+      # GitLab CE Personal Access Token
+      # Note: rw permissions allow manual token updates/rotation
+      - ~/dev/joe-docs/dev-ops/mars-gitlab-ce-token:/root/dev/joe-docs/dev-ops/mars-gitlab-ce-token:rw
+
+      # Note: All files mounted at /root/dev/... are automatically accessible to mars user
+      # via /home/mars/dev/... symlink (created by container-startup.sh hook).
+      # No need for duplicate mounts - mars user is member of joe-docs group.
+
       # Dotfiles (read-write for LazyVim configuration)
       - ~/dev/dotfiles/LazyVim-starter:/root/.config/nvim:rw
       - ~/dev/dotfiles/.bashrc:/root/.bashrc:rw
       - ~/dev/dotfiles/.zshrc:/root/.zshrc:rw
       - ~/dev/dotfiles/.common_shrc:/root/.common_shrc:rw
+
+      # X11 Resources (VNC display customization)
+      # Override default .Xresources with user-specific settings
+      # Used for fonts, colors, DPI, and other X11 display properties
+      - ~/dev/mars-v2/external/mars-user-plugin/hooks/.Xresources:/root/.Xresources:ro
 
       # Additional development repositories
       # - ~/dev/my-repo:/workspace/my-repo:rw
