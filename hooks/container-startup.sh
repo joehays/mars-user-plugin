@@ -173,6 +173,38 @@ setup_credentials_group() {
 }
 
 # =============================================================================
+# /root/dev Permissions Fix (Issue #3)
+# =============================================================================
+# Fix permissions on /root/dev directory for multi-user access
+# Docker creates this directory during volume mounts with root:root ownership
+# We need mars-dev group and group rwx permissions for mars user access
+fix_root_dev_permissions() {
+    if [ ! -d "/root/dev" ]; then
+        log_info "/root/dev does not exist - skipping permission fix"
+        return 0
+    fi
+
+    log_info "Fixing /root/dev permissions for multi-user access..."
+
+    # Set group to mars-dev and add group write/execute
+    if chgrp mars-dev /root/dev 2>/dev/null; then
+        log_success "Changed /root/dev group to mars-dev"
+    else
+        log_warning "Failed to change group ownership on /root/dev"
+        return 1
+    fi
+
+    if chmod g+rwx /root/dev 2>/dev/null; then
+        log_success "Added group rwx permissions to /root/dev"
+    else
+        log_warning "Failed to set group permissions on /root/dev"
+        return 1
+    fi
+
+    log_success "/root/dev now accessible to mars user via mars-dev group"
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -180,6 +212,10 @@ main() {
 
     # Setup credentials group first (needed for file access)
     setup_credentials_group
+    echo ""
+
+    # Fix /root/dev permissions (Issue #3)
+    fix_root_dev_permissions
     echo ""
 
     # Check if mars user exists
