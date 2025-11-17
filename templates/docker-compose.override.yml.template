@@ -63,6 +63,14 @@ services:
       # Used for fonts, colors, DPI, and other X11 display properties
       - ~/dev/mars-v2/external/mars-user-plugin/hooks/.Xresources:/root/.Xresources:ro
 
+      # GitHub SSH Key (GitLab issue #7)
+      # Mount for git push/pull operations to/from GitHub
+      # Both root and mars user need access (multi-user pattern)
+      - ~/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
+      - ~/.ssh/id_ed25519.pub:/root/.ssh/id_ed25519.pub:ro
+      - ~/.ssh/id_ed25519:/home/mars/.ssh/id_ed25519:ro
+      - ~/.ssh/id_ed25519.pub:/home/mars/.ssh/id_ed25519.pub:ro
+
       # Additional development repositories
       # - ~/dev/my-repo:/workspace/my-repo:rw
 

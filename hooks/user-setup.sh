@@ -100,6 +100,53 @@ INSTALL_VIU=false           # Rust-based terminal image viewer
 INSTALL_WEZTERM_LINUX=false # WezTerm AppImage variant
 
 # =============================================================================
+# SSH Configuration Functions
+# =============================================================================
+
+# Configure GitHub SSH host entry (GitLab Issue #7)
+# Creates /root/.ssh/config with GitHub host configuration if SSH key is present
+configure_github_ssh() {
+  local ssh_dir="/root/.ssh"
+  local ssh_config="${ssh_dir}/config"
+  local ssh_key="${ssh_dir}/id_ed25519"
+
+  # Check if GitHub SSH key exists (mounted by docker-compose.override.yml)
+  if [ ! -f "${ssh_key}" ]; then
+    log_warn "GitHub SSH key not found at ${ssh_key}, skipping SSH config"
+    return 0
+  fi
+
+  # Create .ssh directory if it doesn't exist
+  if [ ! -d "${ssh_dir}" ]; then
+    mkdir -p "${ssh_dir}"
+    chmod 700 "${ssh_dir}"
+    log_info "Created ${ssh_dir} directory"
+  fi
+
+  # Check if GitHub host entry already exists
+  if [ -f "${ssh_config}" ] && grep -q "^Host github.com" "${ssh_config}"; then
+    log_info "GitHub SSH config already exists in ${ssh_config}"
+    return 0
+  fi
+
+  # Append GitHub host configuration
+  log_info "Adding GitHub SSH host configuration to ${ssh_config}"
+  cat >> "${ssh_config}" <<'EOF'
+
+# GitHub SSH Configuration (GitLab Issue #7)
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile /root/.ssh/id_ed25519
+EOF
+
+  # Set correct permissions
+  chmod 600 "${ssh_config}"
+
+  log_success "GitHub SSH host configuration added to ${ssh_config}"
+}
+
+# =============================================================================
 # Main Execution
 # =============================================================================
 
@@ -408,6 +455,14 @@ main() {
     install_texlive
     echo ""
   fi
+
+  # =============================================================================
+  # SSH Configuration (GitLab Issue #7)
+  # =============================================================================
+
+  log_info "Configuring GitHub SSH access..."
+  configure_github_ssh
+  echo ""
 
   # =============================================================================
   # Cleanup
