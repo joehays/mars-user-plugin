@@ -40,6 +40,9 @@ services:
       - ~/dev/joe-docs/dev-ops/capra_access_token:/root/dev/joe-docs/dev-ops/capra_access_token:rw
       - ~/dev/joe-docs/dev-ops/capra-api-key:/root/dev/joe-docs/dev-ops/capra-api-key:ro
       - ~/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:/root/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:ro
+      # CAPRA utility scripts for testing and model discovery (GitLab issue #9)
+      - ~/dev/joe-docs/dev-ops/capra_model_list.sh:/root/dev/joe-docs/dev-ops/capra_model_list.sh:ro
+      - ~/dev/joe-docs/dev-ops/capra_query.sh:/root/dev/joe-docs/dev-ops/capra_query.sh:ro
 
       # GitLab CE Personal Access Token
       # Note: rw permissions allow manual token updates/rotation
