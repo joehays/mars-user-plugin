@@ -285,6 +285,68 @@ setup_authorized_keys() {
 }
 
 # =============================================================================
+# Fix SSH File Permissions
+# =============================================================================
+fix_ssh_permissions() {
+    log_info "Fixing SSH file permissions for strict SSH policy compliance..."
+
+    local fixed_count=0
+
+    # Check both root and mars .ssh directories
+    for ssh_dir in "/root/.ssh" "/home/mars/.ssh"; do
+        if [ ! -d "$ssh_dir" ]; then
+            continue
+        fi
+
+        # Fix directory permissions (must be 700)
+        if [ "$(stat -c %a "$ssh_dir")" != "700" ]; then
+            chmod 700 "$ssh_dir" 2>/dev/null && {
+                log_success "Fixed $ssh_dir directory permissions to 700"
+                ((fixed_count++))
+            }
+        fi
+
+        # Fix config file (must be 600, no group write)
+        if [ -f "$ssh_dir/config" ]; then
+            if [ "$(stat -c %a "$ssh_dir/config")" != "600" ]; then
+                chmod 600 "$ssh_dir/config" 2>/dev/null && {
+                    log_success "Fixed $ssh_dir/config permissions to 600"
+                    ((fixed_count++))
+                }
+            fi
+        fi
+
+        # Fix authorized_keys (must be 600)
+        if [ -f "$ssh_dir/authorized_keys" ]; then
+            if [ "$(stat -c %a "$ssh_dir/authorized_keys")" != "600" ]; then
+                chmod 600 "$ssh_dir/authorized_keys" 2>/dev/null && {
+                    log_success "Fixed $ssh_dir/authorized_keys permissions to 600"
+                    ((fixed_count++))
+                }
+            fi
+        fi
+
+        # Fix any private keys (must be 600)
+        for key in "$ssh_dir"/*_id_* "$ssh_dir"/id_*; do
+            if [ -f "$key" ] && [[ ! "$key" == *.pub ]]; then
+                if [ "$(stat -c %a "$key")" != "600" ]; then
+                    chmod 600 "$key" 2>/dev/null && {
+                        log_success "Fixed $(basename "$key") permissions to 600"
+                        ((fixed_count++))
+                    }
+                fi
+            fi
+        done
+    done
+
+    if [ $fixed_count -gt 0 ]; then
+        log_success "Fixed $fixed_count SSH permission issues"
+    else
+        log_info "All SSH permissions already correct"
+    fi
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -386,6 +448,10 @@ main() {
     # Setup SSH authorized_keys for remote access
     echo ""
     setup_authorized_keys
+
+    # Fix SSH file permissions for strict SSH policy compliance
+    echo ""
+    fix_ssh_permissions
 }
 
 # Run main function
