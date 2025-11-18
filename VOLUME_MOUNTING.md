@@ -429,6 +429,114 @@ volumes:
   - ~/dev:/workspace:rw                           # ❌ Too broad
 ```
 
+### SSH File Permissions and Git Limitations
+
+**IMPORTANT**: SSH requires strict permissions on all `.ssh` files, but Git cannot preserve these permissions.
+
+#### The Problem
+
+Git only stores two permission modes:
+- `100644` (644) - Regular files (rw-r--r--)
+- `100755` (755) - Executable files (rwxr-xr-x)
+
+SSH security policy requires:
+- `.ssh/` directories: `700` (drwx------)
+- Private keys: `600` (rw-------)
+- `config`: `600` (rw-------)
+- `authorized_keys`: `600` (rw-------)
+
+**What Happens**:
+1. You create `.ssh/config` with `600` permissions in `mounted-files/`
+2. Git stores it as `100644` (644 permissions)
+3. On checkout, file has `644` permissions (rw-r--r--)
+4. File is auto-mounted with `644` permissions
+5. SSH **rejects** the config file (has group write)
+6. SSH falls back to password authentication ❌
+
+#### The Solution: Runtime Permission Enforcement
+
+The plugin's `container-startup.sh` includes `fix_ssh_permissions()` function:
+
+```bash
+fix_ssh_permissions() {
+    # Runs at container startup
+    # Fixes permissions on all SSH files
+    for ssh_dir in "/root/.ssh" "/home/mars/.ssh"; do
+        chmod 700 "$ssh_dir"                    # Directory
+        chmod 600 "$ssh_dir/config"             # Config
+        chmod 600 "$ssh_dir/authorized_keys"    # Auth keys
+        chmod 600 "$ssh_dir"/*_id_*             # Private keys
+    done
+}
+```
+
+**Why This Works**:
+- Git stores files as 644 (best it can do)
+- Auto-mounted files have 644 from git checkout
+- `fix_ssh_permissions()` fixes them to 600 at container startup
+- SSH accepts files and key-based authentication works ✅
+
+#### Verification
+
+After container startup, verify permissions are correct:
+
+```bash
+# Inside container
+ls -la /root/.ssh/
+# drwx------  2 root root  4096  .
+# -rw-------  1 root root    93  config
+# -rw-------  1 root root   411  github_id_ed25519
+# -rw-------  1 root root  1234  authorized_keys
+
+# All 600/700 - SSH will accept these
+```
+
+#### Why Not Just Fix Git Permissions?
+
+**You can't.** This is a fundamental Git limitation:
+
+```bash
+# Local file has correct permissions
+chmod 600 mounted-files/root/.ssh/config
+ls -l mounted-files/root/.ssh/config
+# -rw------- 1 user group 93 config
+
+# Git stores as 644
+git ls-files -s mounted-files/root/.ssh/config
+# 100644 sha... mounted-files/root/.ssh/config
+
+# On checkout, becomes 644 again
+git checkout HEAD -- mounted-files/root/.ssh/config
+ls -l mounted-files/root/.ssh/config
+# -rw-r--r-- 1 user group 93 config
+```
+
+**This is by design** - Git doesn't preserve arbitrary permissions for security reasons.
+
+#### Best Practice
+
+For security-sensitive files in git-tracked directories:
+
+1. ✅ **Accept that git stores as 644**
+2. ✅ **Use runtime enforcement** (`fix_ssh_permissions()`)
+3. ✅ **Document the requirement** (in code comments)
+4. ❌ **Don't rely on host file permissions** (git will reset them)
+
+This pattern is standard in production Docker images for SSH, SSL certs, and other security-sensitive files.
+
+#### Related Functions
+
+**`fix_ssh_permissions()`** (hooks/container-startup.sh):
+- Enforces 600/700 permissions on all SSH files
+- Runs at every container startup
+- Idempotent (safe to run multiple times)
+- Handles both `/root/.ssh` and `/home/mars/.ssh`
+
+**`setup_authorized_keys()`** (hooks/container-startup.sh):
+- Appends public keys to `authorized_keys`
+- Sets 600 permissions on created files
+- Creates `.ssh/` directory with 700 if needed
+
 ## See Also
 
 - **E6 README**: `~/dev/mars-v2/mars-dev/dev-environment/README.md`
