@@ -205,6 +205,40 @@ fix_root_dev_permissions() {
 }
 
 # =============================================================================
+# Auto-Symlink Creation from mounted-files/ (ADR-0011)
+# =============================================================================
+create_auto_symlinks() {
+    local symlink_script="/tmp/mars-plugin-symlinks.sh"
+
+    # Check if symlink script exists
+    if [ ! -f "$symlink_script" ]; then
+        # No symlinks to create (not an error)
+        return 0
+    fi
+
+    # Check if script is executable
+    if [ ! -x "$symlink_script" ]; then
+        chmod +x "$symlink_script"
+    fi
+
+    log_info "Creating auto-symlinks from mounted-files/..."
+
+    # Execute symlink script
+    if bash "$symlink_script"; then
+        log_success "Auto-symlinks created successfully"
+    else
+        log_warning "Failed to create auto-symlinks (exit code: $?)"
+        return 1
+    fi
+
+    # Verify symlinks were created
+    local symlink_count=$(grep -c "^ln -sf" "$symlink_script" 2>/dev/null || echo "0")
+    log_info "Created $symlink_count symlinks in container"
+
+    return 0
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -298,6 +332,10 @@ main() {
 
     # Run LazyVim first-run setup if needed
     setup_lazyvim_first_run
+
+    # Create auto-symlinks from mounted-files/ directory (ADR-0011)
+    echo ""
+    create_auto_symlinks
 }
 
 # Run main function
