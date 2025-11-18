@@ -239,6 +239,52 @@ create_auto_symlinks() {
 }
 
 # =============================================================================
+# SSH Authorized Keys Setup
+# =============================================================================
+setup_authorized_keys() {
+    local ssh_dir="/root/.ssh"
+    local authorized_keys="${ssh_dir}/authorized_keys"
+    local public_key="${ssh_dir}/astrocyte_id_ed25519.pub"  # Auto-mounted from mounted-files/
+
+    # Check if public key file exists
+    if [ ! -f "$public_key" ]; then
+        log_info "No public key found at $public_key (skipping authorized_keys setup)"
+        return 0
+    fi
+
+    log_info "Setting up authorized_keys for SSH access..."
+
+    # Create .ssh directory if it doesn't exist
+    if [ ! -d "$ssh_dir" ]; then
+        mkdir -p "$ssh_dir"
+        chmod 700 "$ssh_dir"
+        log_info "Created $ssh_dir directory"
+    fi
+
+    # Create authorized_keys if it doesn't exist
+    if [ ! -f "$authorized_keys" ]; then
+        touch "$authorized_keys"
+        chmod 600 "$authorized_keys"
+        log_info "Created $authorized_keys file"
+    fi
+
+    # Read the public key content
+    local key_content=$(cat "$public_key")
+
+    # Check if key already exists (idempotency)
+    if grep -Fq "$key_content" "$authorized_keys" 2>/dev/null; then
+        log_info "Public key already in authorized_keys"
+        return 0
+    fi
+
+    # Append public key to authorized_keys
+    echo "$key_content" >> "$authorized_keys"
+    chmod 600 "$authorized_keys"
+
+    log_success "Added public key from astrocyte_id_ed25519.pub to authorized_keys"
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -336,6 +382,10 @@ main() {
     # Create auto-symlinks from mounted-files/ directory (ADR-0011)
     echo ""
     create_auto_symlinks
+
+    # Setup SSH authorized_keys for remote access
+    echo ""
+    setup_authorized_keys
 }
 
 # Run main function
