@@ -298,9 +298,9 @@ fix_ssh_key_permissions() {
 
     log_info "Fixing GitHub SSH key permissions for mars user access..."
 
-    # Change group to mars-dev
-    if chgrp mars-dev "$mars_key" 2>/dev/null; then
-        log_success "Changed $mars_key group to mars-dev"
+    # Change group to joe-docs (mars user is member of this group)
+    if chgrp "${MARS_USER_CREDENTIALS_GROUP}" "$mars_key" 2>/dev/null; then
+        log_success "Changed $mars_key group to ${MARS_USER_CREDENTIALS_GROUP}"
     else
         log_warning "Failed to change group ownership on $mars_key"
         return 1
@@ -314,7 +314,7 @@ fix_ssh_key_permissions() {
         return 1
     fi
 
-    log_success "GitHub SSH key now accessible to mars user via mars-dev group"
+    log_success "GitHub SSH key now accessible to mars user via ${MARS_USER_CREDENTIALS_GROUP} group"
 }
 
 # =============================================================================
