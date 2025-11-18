@@ -285,39 +285,6 @@ setup_authorized_keys() {
 }
 
 # =============================================================================
-# SSH Key Symlinks for Mars User (GitHub)
-# =============================================================================
-setup_ssh_key_symlinks() {
-    local root_ssh="/root/.ssh"
-    local mars_ssh="/home/mars/.ssh"
-
-    # Check if root SSH key exists (mounted from host ~/.ssh/id_ed25519)
-    if [ ! -f "$root_ssh/github_id_ed25519" ]; then
-        log_info "No GitHub SSH key found at $root_ssh/github_id_ed25519 (skipping mars user symlink)"
-        return 0
-    fi
-
-    log_info "Setting up GitHub SSH key symlink for mars user..."
-
-    # Create mars .ssh directory if it doesn't exist
-    if [ ! -d "$mars_ssh" ]; then
-        mkdir -p "$mars_ssh"
-        chmod 700 "$mars_ssh"
-        chown mars:mars "$mars_ssh"
-        log_info "Created $mars_ssh directory"
-    fi
-
-    # Create symlink for private key
-    if [ ! -e "$mars_ssh/github_id_ed25519" ]; then
-        ln -s "$root_ssh/github_id_ed25519" "$mars_ssh/github_id_ed25519"
-        chown -h mars:mars "$mars_ssh/github_id_ed25519"
-        log_success "Created symlink: $mars_ssh/github_id_ed25519 → $root_ssh/github_id_ed25519"
-    else
-        log_info "GitHub SSH key symlink already exists for mars user"
-    fi
-}
-
-# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -419,10 +386,6 @@ main() {
     # Setup SSH authorized_keys for remote access
     echo ""
     setup_authorized_keys
-
-    # Setup GitHub SSH key symlinks for mars user
-    echo ""
-    setup_ssh_key_symlinks
 }
 
 # Run main function
