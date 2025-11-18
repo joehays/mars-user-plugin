@@ -108,9 +108,9 @@ INSTALL_WEZTERM_LINUX=false # WezTerm AppImage variant
 configure_github_ssh() {
   local ssh_dir="/root/.ssh"
   local ssh_config="${ssh_dir}/config"
-  local ssh_key="${ssh_dir}/id_ed25519"
+  local ssh_key="${ssh_dir}/github_id_ed25519"
 
-  # Check if GitHub SSH key exists (mounted by docker-compose.override.yml)
+  # Check if GitHub SSH key exists  (mounted by 'mars-user-plugin' automounting mechanism)
   if [ ! -f "${ssh_key}" ]; then
     log_warn "GitHub SSH key not found at ${ssh_key}, skipping SSH config"
     return 0
@@ -137,13 +137,54 @@ configure_github_ssh() {
 Host github.com
   HostName github.com
   User git
-  IdentityFile /root/.ssh/id_ed25519
+  IdentityFile /root/.ssh/github_id_ed25519
 EOF
 
   # Set correct permissions
   chmod 600 "${ssh_config}"
 
-  log_success "GitHub SSH host configuration added to ${ssh_config}"
+  log_success "GitHub SSH host configuration added to ${ssh_config_mars}"
+
+
+  local ssh_dir_mars="/home/mars/.ssh"
+  local ssh_config_mars="${ssh_dir_mars}/config"
+  local ssh_key_mars="${ssh_dir_mars}/github_id_ed25519"
+
+  # Check if GitHub SSH key exists (mounted by 'mars-user-plugin' automounting mechanism)
+  if [ ! -f "${ssh_key_mars}" ]; then
+    log_warn "GitHub SSH key not found at ${ssh_key_mars}, skipping SSH config"
+    return 0
+  fi
+
+
+  # Create mars .ssh directory if it doesn't exist
+  if [ ! -d "${ssh_dir_mars}" ]; then
+    mkdir -p "${ssh_dir_mars}"
+    chmod 700 "${ssh_dir_mars}"
+    log_info "Created ${ssh_dir_mars} directory"
+  fi
+
+  # Check if GitHub host entry already exists
+  if [ -f "${ssh_config_mars}" ] && grep -q "^Host github.com" "${ssh_config_mars}"; then
+    log_info "GitHub SSH config already exists in ${ssh_config_mars}"
+    return 0
+  fi
+
+  # Append GitHub host configuration for mars user
+  log_info "Adding GitHub SSH host configuration to ${ssh_config_mars}"
+  cat >> "${ssh_config_mars}" <<'EOF'
+
+# GitHub SSH Configuration (GitLab Issue #7)
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile /home/mars/.ssh/github_id_ed25519
+EOF
+
+  # Set correct permissions
+  chmod 600 "${ssh_config_mars}"
+
+  log_success "GitHub SSH host configuration added to ${ssh_config_mars}"
 }
 
 # =============================================================================
