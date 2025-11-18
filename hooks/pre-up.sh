@@ -51,10 +51,12 @@ OVERRIDE_TARGET="${MARS_REPO_ROOT:-}/mars-dev/dev-environment/docker-compose.ove
 check_mount_mode() {
     local file="$1"
     local perms=$(stat -c '%a' "$file" 2>/dev/null)
+    local owner_perm="${perms:0:1}"
     local group_perm="${perms:1:1}"
 
-    # Check if group has write permission (bit 1 set)
-    if [ $((group_perm & 2)) -ne 0 ]; then
+    # Check if owner OR group has write permission (bit 1 set)
+    # Mount as rw if anyone can write, ro if nobody can write
+    if [ $((owner_perm & 2)) -ne 0 ] || [ $((group_perm & 2)) -ne 0 ]; then
         echo "rw"
     else
         echo "ro"
