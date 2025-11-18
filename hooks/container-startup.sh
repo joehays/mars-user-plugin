@@ -285,6 +285,39 @@ setup_authorized_keys() {
 }
 
 # =============================================================================
+# Fix GitHub SSH Key Permissions (Mars User)
+# =============================================================================
+fix_ssh_key_permissions() {
+    local mars_key="/home/mars/.ssh/github_id_ed25519"
+
+    # Check if key exists (mounted from host)
+    if [ ! -f "$mars_key" ]; then
+        log_info "No GitHub SSH key found at $mars_key (skipping permission fix)"
+        return 0
+    fi
+
+    log_info "Fixing GitHub SSH key permissions for mars user access..."
+
+    # Change group to mars-dev
+    if chgrp mars-dev "$mars_key" 2>/dev/null; then
+        log_success "Changed $mars_key group to mars-dev"
+    else
+        log_warning "Failed to change group ownership on $mars_key"
+        return 1
+    fi
+
+    # Add group read permission (keep user read/write)
+    if chmod 640 "$mars_key" 2>/dev/null; then
+        log_success "Set permissions to 640 (rw-r-----) on $mars_key"
+    else
+        log_warning "Failed to set permissions on $mars_key"
+        return 1
+    fi
+
+    log_success "GitHub SSH key now accessible to mars user via mars-dev group"
+}
+
+# =============================================================================
 # Main: Create symlinks for multi-user access
 # =============================================================================
 main() {
@@ -386,6 +419,10 @@ main() {
     # Setup SSH authorized_keys for remote access
     echo ""
     setup_authorized_keys
+
+    # Fix GitHub SSH key permissions for mars user
+    echo ""
+    fix_ssh_key_permissions
 }
 
 # Run main function
