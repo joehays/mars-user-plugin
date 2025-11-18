@@ -244,7 +244,7 @@ create_auto_symlinks() {
 setup_authorized_keys() {
     local ssh_dir="/root/.ssh"
     local authorized_keys="${ssh_dir}/authorized_keys"
-    local public_key="${ssh_dir}/astrocyte_id_ed25519.pub"  # Auto-mounted from mounted-files/
+    local public_key="${ssh_dir}/my_remote_id_ed25519.pub"  # Auto-mounted from mounted-files/
 
     # Check if public key file exists
     if [ ! -f "$public_key" ]; then
@@ -281,7 +281,7 @@ setup_authorized_keys() {
     echo "$key_content" >> "$authorized_keys"
     chmod 600 "$authorized_keys"
 
-    log_success "Added public key from astrocyte_id_ed25519.pub to authorized_keys"
+    log_success "Added public key from my_remote_id_ed25519.pub to authorized_keys"
 }
 
 # =============================================================================
