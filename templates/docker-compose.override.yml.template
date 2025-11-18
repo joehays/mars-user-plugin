@@ -63,12 +63,11 @@ services:
       # Used for fonts, colors, DPI, and other X11 display properties
       - ~/dev/mars-v2/external/mars-user-plugin/hooks/.Xresources:/root/.Xresources:ro
 
-      # GitHub SSH Key (dual mount for root and mars users)
+      # GitHub SSH Key (root user only)
       # Mount for git push/pull operations to/from GitHub
       # Host: ~/.ssh/id_ed25519 → Container: github_id_ed25519 (renamed for clarity)
-      # Dual mount ensures proper permissions for both users
+      # Only root user has GitHub SSH access
       - ~/.ssh/id_ed25519:/root/.ssh/github_id_ed25519:ro
-      - ~/.ssh/id_ed25519:/home/mars/.ssh/github_id_ed25519:ro
 
       # Additional development repositories
       # - ~/dev/my-repo:/workspace/my-repo:rw
