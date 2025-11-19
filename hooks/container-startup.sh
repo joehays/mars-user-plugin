@@ -327,8 +327,15 @@ fix_ssh_permissions() {
         fi
 
         # Fix any private keys (must be 600)
+        # Use nullglob to avoid literal glob strings if no files match
+        shopt -s nullglob
         for key in "$ssh_dir"/*_id_* "$ssh_dir"/id_*; do
-            if [ -f "$key" ] && [[ ! "$key" == *.pub ]]; then
+            # Skip if key is a public key file
+            case "$key" in
+                *.pub) continue ;;
+            esac
+
+            if [ -f "$key" ]; then
                 if [ "$(stat -c %a "$key")" != "600" ]; then
                     chmod 600 "$key" 2>/dev/null && {
                         log_success "Fixed $(basename "$key") permissions to 600"
@@ -337,6 +344,7 @@ fix_ssh_permissions() {
                 fi
             fi
         done
+        shopt -u nullglob
     done
 
     if [ $fixed_count -gt 0 ]; then
