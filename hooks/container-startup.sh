@@ -302,7 +302,7 @@ fix_ssh_permissions() {
         if [ "$(stat -c %a "$ssh_dir")" != "700" ]; then
             chmod 700 "$ssh_dir" 2>/dev/null && {
                 log_success "Fixed $ssh_dir directory permissions to 700"
-                ((fixed_count++))
+                fixed_count=$((fixed_count + 1))
             }
         fi
 
@@ -311,7 +311,7 @@ fix_ssh_permissions() {
             if [ "$(stat -c %a "$ssh_dir/config")" != "600" ]; then
                 chmod 600 "$ssh_dir/config" 2>/dev/null && {
                     log_success "Fixed $ssh_dir/config permissions to 600"
-                    ((fixed_count++))
+                    fixed_count=$((fixed_count + 1))
                 }
             fi
         fi
@@ -321,7 +321,7 @@ fix_ssh_permissions() {
             if [ "$(stat -c %a "$ssh_dir/authorized_keys")" != "600" ]; then
                 chmod 600 "$ssh_dir/authorized_keys" 2>/dev/null && {
                     log_success "Fixed $ssh_dir/authorized_keys permissions to 600"
-                    ((fixed_count++))
+                    fixed_count=$((fixed_count + 1))
                 }
             fi
         fi
@@ -339,7 +339,7 @@ fix_ssh_permissions() {
                 if [ "$(stat -c %a "$key")" != "600" ]; then
                     chmod 600 "$key" 2>/dev/null && {
                         log_success "Fixed $(basename "$key") permissions to 600"
-                        ((fixed_count++))
+                        fixed_count=$((fixed_count + 1))
                     }
                 fi
             fi
