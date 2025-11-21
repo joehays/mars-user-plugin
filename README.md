@@ -16,6 +16,43 @@ Mounts user-specified directories into the container via `pre-up` hook.
 
 **See**: [VOLUME_MOUNTING.md](VOLUME_MOUNTING.md) for complete volume mounting guide.
 
+### 3. Credential Script Configuration (User-Specific)
+Template for configuring custom credential script paths.
+
+**File**: `hooks/.credential-scripts.example`
+
+**Purpose**: Configure MARS to use your existing credential scripts (e.g., for AskSage, GitLab) instead of creating duplicates.
+
+**Setup**:
+1. Review `hooks/.credential-scripts.example`
+2. Copy relevant exports to `~/.bashrc` or `~/.zshrc`
+3. Update paths to point to your credential scripts
+4. Source `mars-env.config` to activate
+
+**Three Methods**:
+- **Method A**: Custom paths (reuse existing scripts)
+  ```bash
+  export ZOTERO_API_KEY_SCRIPT="$HOME/.credentials/asksage-token.sh"
+  ```
+- **Method B**: Conventional directory (MARS-specific scripts)
+  ```bash
+  export CREDENTIAL_SCRIPT_DIR="$HOME/.mars/credential-scripts"
+  ```
+- **Method C**: Hybrid (mix both approaches)
+
+**Supported Credentials**:
+- `ZOTERO_API_KEY` - Zotero MCP server, literature sync
+- `GITLAB_PERSONAL_ACCESS_TOKEN` - GitLab MCP tools, API access
+- `VNC_PASSWORD` - Remote desktop password
+- `POSTGRES_PASSWORD` - PostgreSQL database
+- `NEO4J_PASSWORD` - Neo4j graph database
+- `MILVUS_MINIO_SECRET_KEY` - Milvus vector database storage
+
+**See**:
+- `hooks/.credential-scripts.example` - Full configuration template
+- `mars-v2/docs/wiki/CREDENTIAL_MANAGEMENT.md` - Complete documentation
+- `mars-v2/mars-dev/scripts/credential-scripts/README.md` - Integration examples
+
 ## Installation Categories
 
 ### 1. Personal Tools (Default: ENABLED)
@@ -248,6 +285,137 @@ Using default VNC password: 'password'
 - **VNC xstartup**: Configured in mars-dev Dockerfile (auto-loads .Xresources, starts IceWM)
 
 **See**: `mars-dev/dev-environment/README.md` for complete VNC/SSH setup guide.
+
+## Zotero Data Directory Configuration
+
+### Overview
+
+The mars-dev container includes Zotero desktop client for literature management (GitLab issue #7). By default, Zotero data is stored in `~/.zotero` on the host, which is mounted to both `/root/.zotero` and `/home/mars/.zotero` in the container.
+
+You can customize the Zotero data location using the plugin to:
+- Use a different Zotero profile/library per project
+- Store Zotero data on networked storage (NAS)
+- Keep Zotero data in a specific backup directory
+- Isolate research projects with separate Zotero libraries
+
+### Setting Custom Zotero Data Directory
+
+**Method 1: Environment Variable in Plugin (Recommended)**
+
+Create or edit `docker-compose.override.yml` in your plugin directory:
+
+```yaml
+services:
+  mars-dev:
+    environment:
+      # Override Zotero data directory location
+      - ZOTERO_DATA_DIR=/home/joehays/Documents/zotero-research
+```
+
+**Method 2: Volume Override (Complete Control)**
+
+Create or edit `docker-compose.override.yml` to completely replace the mount:
+
+```yaml
+services:
+  mars-dev:
+    volumes:
+      # Override default Zotero mounts
+      - /custom/path/to/zotero:/root/.zotero:rw
+      - /custom/path/to/zotero:/home/mars/.zotero:rw
+```
+
+### Configuration Priority
+
+The Zotero data directory is determined in this order:
+
+1. **mars-user-plugin `docker-compose.override.yml`** (highest priority - user-specific)
+2. **`mars-env.config` export** (repository-level configuration)
+3. **docker-compose.yml default** (`~/.zotero` fallback)
+
+### Example Use Cases
+
+**Use Case 1: Project-Specific Zotero Library**
+
+Different Zotero library for each research project:
+
+```yaml
+# In plugin for mars-quantum-research project
+services:
+  mars-dev:
+    environment:
+      - ZOTERO_DATA_DIR=/home/joehays/research/quantum/zotero-lib
+```
+
+```yaml
+# In plugin for mars-ml-research project
+services:
+  mars-dev:
+    environment:
+      - ZOTERO_DATA_DIR=/home/joehays/research/ml/zotero-lib
+```
+
+**Use Case 2: Networked Storage**
+
+Store Zotero library on NAS for backup/sharing:
+
+```yaml
+services:
+  mars-dev:
+    environment:
+      - ZOTERO_DATA_DIR=/mnt/nas/research/zotero-shared
+```
+
+**Use Case 3: Automatic Backup Directory**
+
+Keep Zotero data in a directory that's automatically backed up:
+
+```yaml
+services:
+  mars-dev:
+    environment:
+      - ZOTERO_DATA_DIR=/home/joehays/Dropbox/zotero-backup
+```
+
+### Verification
+
+After configuring, verify the mount:
+
+```bash
+# Rebuild and restart mars-dev container
+cd ~/dev/mars-v2
+mars-dev build
+mars-dev down
+mars-dev up -d
+
+# Check what's mounted (from inside container)
+mars-dev exec mars-dev env | grep ZOTERO_DATA_DIR
+mars-dev exec mars-dev ls -la /root/.zotero
+mars-dev exec mars-dev ls -la /home/mars/.zotero
+
+# Verify on host
+ls -la ~/Documents/zotero-research  # or your custom path
+```
+
+### Benefits
+
+✅ **Persistent library** - Zotero data survives container rebuilds
+✅ **Multi-project support** - Different libraries for different research contexts
+✅ **Networked storage** - Access library from multiple machines
+✅ **Backup flexibility** - Choose directories that are automatically backed up
+✅ **Sync with Zotero cloud** - Configure Zotero sync independently of data location
+
+### Related Configuration
+
+**Zotero Server (Swarm Services)**:
+- MySQL database persistence: `mars-zotero-mysql-data` volume
+- Configuration files: `modules/services/lit-manager/config/`
+- Artifact storage: MinIO S3-compatible storage
+
+**See**:
+- E6 Zotero documentation: `mars-dev/dev-environment/README.md` (Configurable Mounts - Zotero)
+- Zotero server setup: `modules/services/lit-manager/README.md`
+- Complete persistence analysis: `mars-dev/docs/sessions/` (container health investigation)
 
 ## Clipboard Integration (VNC Copy/Paste)
 
