@@ -48,10 +48,11 @@ Template for configuring custom credential script paths.
 - `NEO4J_PASSWORD` - Neo4j graph database
 - `MILVUS_MINIO_SECRET_KEY` - Milvus vector database storage
 
-**See**:
-- `hooks/.credential-scripts.example` - Full configuration template
-- `mars-v2/docs/wiki/CREDENTIAL_MANAGEMENT.md` - Complete documentation
-- `mars-v2/mars-dev/scripts/credential-scripts/README.md` - Integration examples
+**Documentation**:
+- **Complete Guide**: `mars-v2/core/docs/CREDENTIAL_MANAGEMENT.md`
+- **Plugin Template**: `hooks/.credential-scripts.example`
+- **Example Scripts**: `mars-v2/mars-dev/scripts/credential-scripts/examples/`
+- **Test Suite**: `mars-v2/core/tests/test_credential_loading.py`
 
 ## Installation Categories
 
