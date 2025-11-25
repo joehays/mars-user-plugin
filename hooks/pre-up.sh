@@ -1,13 +1,19 @@
 #!/bin/bash
 # =============================================================================
 # hooks/pre-up.sh
-# Pre-up hook: Copy user-specific docker-compose.override.yml before starting E6
+# Pre-up hook: Generate docker-compose.override.yml in plugin directory
 #
 # Execution context:
 #   - Runs on HOST before 'mars-dev up' command
 #   - Working directory: mars-dev/dev-environment/
 #   - MARS_PLUGIN_ROOT: Path to this plugin directory
 #   - MARS_REPO_ROOT: Path to MARS repository
+#
+# Architecture (COMPOSE_FILE approach):
+#   - Template: <plugin>/templates/docker-compose.override.yml.template
+#   - Generated: <plugin>/generated/docker-compose.override.yml
+#   - mars-dev discovers this via COMPOSE_FILE env var (see compose-file-discovery.sh)
+#   - No files are copied to mars-dev/dev-environment/ (mod-arch compliant)
 # =============================================================================
 set -euo pipefail
 
@@ -41,8 +47,12 @@ log_warning() {
 ENABLE_CUSTOM_VOLUMES=true   # Set to false to disable custom volume mounting
 
 # Paths (use parameter expansion to handle unbound variables)
+# Generated file stays in plugin directory (mod-arch compliant)
 OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.yml.template"
-OVERRIDE_TARGET="${MARS_REPO_ROOT:-}/mars-dev/dev-environment/docker-compose.override.yml"
+OVERRIDE_TARGET="${MARS_PLUGIN_ROOT:-}/generated/docker-compose.override.yml"
+
+# Ensure generated directory exists
+mkdir -p "${MARS_PLUGIN_ROOT:-}/generated"
 
 # =============================================================================
 # Auto-Mount Helper Functions (ADR-0011)
@@ -225,13 +235,14 @@ main() {
 
     # Copy template to target location if needed
     if [ "$skip_copy" = false ]; then
-        log_info "Copying volume override configuration..."
+        log_info "Generating volume override configuration..."
         cp "${OVERRIDE_TEMPLATE}" "${OVERRIDE_TARGET}"
 
         # Verify copy succeeded
         if [ -f "${OVERRIDE_TARGET}" ]; then
-            log_success "Custom volume configuration ready"
-            log_info "Edit ${OVERRIDE_TARGET} to customize volume mounts"
+            log_success "Custom volume configuration generated"
+            log_info "Generated: ${OVERRIDE_TARGET}"
+            log_info "Edit template to customize: ${OVERRIDE_TEMPLATE}"
         else
             log_warning "Failed to create override file"
             return 1
