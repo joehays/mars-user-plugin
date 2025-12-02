@@ -1,0 +1,8 @@
+# Test configuration file (Read-Write)
+# This file has chmod 660, so it should be mounted as :rw
+
+settings:
+  auto_mount: true
+  permission_detection: true
+  ro_mode: 640  # rw-r-----
+  rw_mode: 660  # rw-rw----

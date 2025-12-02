@@ -24,7 +24,6 @@ hooks/.vnc-password
 
 # Generated and runtime files
 generated/
-mounted-files/
 
 # User-specific config (may contain secrets)
 hooks/config/

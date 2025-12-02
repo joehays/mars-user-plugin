@@ -1,0 +1,14 @@
+# Switch to specific workspace
+key "Alt+1" workspace 0
+key "Alt+2" workspace 1
+key "Alt+3" workspace 2
+key "Alt+4" workspace 3
+
+# Move between workspaces
+key "Alt+Left" prevworkspace
+key "Alt+Right" nextworkspace
+
+# Move window to different workspace
+key "Alt+Shift+1" movetoworkspace 0
+key "Alt+Shift+Left" windowtoprev
+key "Alt+Shift+Right" windowtonext
