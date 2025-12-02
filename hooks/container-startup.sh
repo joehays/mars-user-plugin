@@ -50,6 +50,7 @@ log_warning() {
 # Format: "source:target" where source is the real path, target is the symlink
 declare -a SYMLINK_PAIRS=(
     "/root/dev:/home/mars/dev"
+    "/root/docs:/home/mars/docs"
     "/workspace/mars-v2:/root/dev/mars-v2"
 )
 
@@ -420,11 +421,20 @@ main() {
         # Create symlink
         ln -s "$source" "$target"
 
-        # Fix ownership (symlinks should be owned by target user)
-        chown -h mars:mars "$target" 2>/dev/null || true
+        # Fix ownership (symlinks should be owned by mars:mars-dev for proper group access)
+        chown -h mars:mars-dev "$target" 2>/dev/null || true
 
         log_success "Created symlink: $target → $source"
         created_count=$((created_count + 1))
+    done
+
+    # Fix ownership on all symlinks (including pre-existing ones)
+    log_info "Ensuring correct ownership on all symlinks..."
+    for pair in "${SYMLINK_PAIRS[@]}"; do
+        local target="${pair##*:}"
+        if [ -L "$target" ]; then
+            chown -h mars:mars-dev "$target" 2>/dev/null || true
+        fi
     done
 
     # Summary
