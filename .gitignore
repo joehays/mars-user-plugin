@@ -21,6 +21,7 @@ test-output/
 # VNC password file (contains plain text password)
 hooks/.vnc-password
 .vnc-password
+mounted-files/root/.ssh/github_id_ed25519
 
 # Generated and runtime files
 generated/
