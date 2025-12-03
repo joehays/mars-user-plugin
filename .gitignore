@@ -33,3 +33,4 @@ hooks/config/
 __pycache__/
 *.pyc
 tests/__pycache__/
+mounted-files/root/.ssh/authorized_keys
