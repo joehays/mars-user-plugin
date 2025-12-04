@@ -18,6 +18,19 @@ from pathlib import Path
 from typing import Generator, List
 
 
+def get_repo_root() -> Path:
+    """Get MARS repository root, handling both host and container environments."""
+    # Try environment variable first
+    if os.environ.get("MARS_REPO_ROOT"):
+        return Path(os.environ["MARS_REPO_ROOT"])
+    # Fall back to discovering from test file location
+    # This file is at external/mars-user-plugin/tests/test_auto_mount.py
+    return Path(__file__).resolve().parent.parent.parent.parent
+
+
+REPO_ROOT = get_repo_root()
+
+
 # =============================================================================
 # Fixtures
 # =============================================================================
@@ -55,7 +68,7 @@ NC="\\033[0m"
 @pytest.fixture
 def pre_up_script(temp_plugin_root: Path, utils_script: Path) -> Path:
     """Copy pre-up.sh to temp directory for testing."""
-    source = Path("/home/joehays/dev/mars-v2/external/mars-user-plugin/hooks/pre-up.sh")
+    source = REPO_ROOT / "external" / "mars-user-plugin" / "hooks" / "pre-up.sh"
     dest = temp_plugin_root / "hooks" / "pre-up.sh"
     shutil.copy(source, dest)
     dest.chmod(0o755)

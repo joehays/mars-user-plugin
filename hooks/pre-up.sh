@@ -156,14 +156,22 @@ generate_auto_mounts() {
         mount_count=$((mount_count + 1))
     done < <(find "$mounted_files_dir" -type f -print0 2>/dev/null)
 
-    # Append auto-generated mounts to override file if we have mounts
+    # Insert auto-generated mounts at the marker (before mars-runtime section)
     if [ $mount_count -gt 0 ]; then
         # Remove old auto-generated section if exists
         sed -i '/# Auto-generated mounts from mounted-files/,/^$/d' "$OVERRIDE_TARGET" 2>/dev/null || true
 
-        # Append new mounts
-        cat "$temp_mounts" >> "$OVERRIDE_TARGET"
-        log_success "Generated $mount_count auto-mounts"
+        # Insert new mounts at the marker position
+        # This ensures mounts are part of mars-dev volumes (the YAML anchor source)
+        if grep -q "# --- AUTO-MOUNTS-MARKER" "$OVERRIDE_TARGET"; then
+            # Insert before the marker
+            sed -i "/# --- AUTO-MOUNTS-MARKER/r $temp_mounts" "$OVERRIDE_TARGET"
+            log_success "Generated $mount_count auto-mounts (inserted at marker)"
+        else
+            # Fallback: append to end (legacy behavior for old templates)
+            cat "$temp_mounts" >> "$OVERRIDE_TARGET"
+            log_success "Generated $mount_count auto-mounts (appended)"
+        fi
     else
         log_info "No files found in mounted-files/ for auto-mounting"
     fi
