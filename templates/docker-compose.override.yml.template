@@ -91,6 +91,7 @@ services:
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
 
   # E30: Runtime super-container (mars-runtime) for research projects
-  # Uses same volume mounts as E6 via YAML anchor
+  # Docker Compose MERGES volume lists (additive), so user volumes are appended
+  # to the base compose volumes (workspace mount + Docker data volume)
   mars-runtime:
     volumes: *shared-volumes
