@@ -43,4 +43,7 @@ services:
 
       # GitHub SSH Key (root user only)
       - ~/.ssh/id_ed25519:/root/.ssh/github_id_ed25519:ro
+
+      # Docker config (registry login credentials)
+      - ~/dev/mars-user-plugin/mounted-files/root/.docker:/root/.docker:rw
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
