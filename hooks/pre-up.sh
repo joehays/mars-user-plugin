@@ -24,6 +24,12 @@ set -euo pipefail
 # Get the directory containing this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Self-detect MARS_PLUGIN_ROOT if not set (enables standalone execution)
+# The plugin root is the parent directory of hooks/
+if [ -z "${MARS_PLUGIN_ROOT:-}" ]; then
+    export MARS_PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+fi
+
 # Source utilities for consistent logging
 source "${SCRIPT_DIR}/scripts/utils.sh"
 
