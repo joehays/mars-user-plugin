@@ -48,7 +48,16 @@ ENABLE_CUSTOM_VOLUMES=true   # Set to false to disable custom volume mounting
 
 # Paths (use parameter expansion to handle unbound variables)
 # Generated file stays in plugin directory (mod-arch compliant)
-OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.yml.template"
+# Select template based on MARS_MODE
+if [ "${MARS_MODE:-}" = "research-project" ]; then
+    # E30 mode uses mars-runtime only template
+    OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.e30.yml.template"
+else
+    # E6 mode (mars-dev) uses mars-dev only template
+    # Note: Each template only defines one service to avoid Docker Compose errors
+    # when merging with base compose that only defines the relevant service
+    OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.e6.yml.template"
+fi
 OVERRIDE_TARGET="${MARS_PLUGIN_ROOT:-}/generated/docker-compose.override.yml"
 
 # Ensure generated directory exists
@@ -198,7 +207,17 @@ generate_auto_mounts() {
         chmod +x "$symlink_script"
 
         # Add symlink script mount to override file
-        echo "      - $symlink_script:/tmp/mars-plugin-symlinks.sh:ro" >> "$OVERRIDE_TARGET"
+        local symlink_mount="      - $symlink_script:/tmp/mars-plugin-symlinks.sh:ro"
+
+        # For E6 template: insert before "# E30:" comment (volumes section belongs to mars-dev)
+        # For E30 template: append to end (volumes section belongs to mars-runtime)
+        if grep -q "# E30:" "$OVERRIDE_TARGET"; then
+            # E6 template: insert before the E30 section
+            sed -i "/# E30:/i\\$symlink_mount" "$OVERRIDE_TARGET"
+        else
+            # E30 template: append to volumes list
+            echo "$symlink_mount" >> "$OVERRIDE_TARGET"
+        fi
         log_success "Generated $symlink_count symlink commands"
     else
         log_info "No symlinks found in mounted-files/"
@@ -255,6 +274,7 @@ main() {
             log_warning "Failed to create override file"
             return 1
         fi
+
     fi
 
     # Generate auto-mounts from mounted-files/ directory (ADR-0011)
