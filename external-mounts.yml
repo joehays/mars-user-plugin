@@ -40,11 +40,11 @@ services:
       # - ~/.ssh/id_ed25519:/root/.ssh/github_key:ro
 
       # ==================================================================
-      # Joe's Credentials Directory
+      # Joe's Credentials (specific files only)
       # ==================================================================
-      # Mount credentials at the same relative path inside container
-      # This allows config.sh to use $HOME/dev/joe-docs/dev-ops in both
-      # host ($HOME=/home/joehays) and container ($HOME=/root)
-      - ~/dev/joe-docs/dev-ops:/root/dev/joe-docs/dev-ops:ro
+      # Mount individual credential files to /root/credentials/
+      - ~/dev/joe-docs/dev-ops/mars-gitlab-ce-token:/root/credentials/mars-gitlab-ce-token:ro
+      # Add more as needed:
+      # - ~/dev/joe-docs/dev-ops/mars-creds:/root/credentials/mars-creds:ro
 
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
