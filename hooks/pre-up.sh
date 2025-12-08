@@ -49,6 +49,74 @@ log_warning() {
     echo -e "${YELLOW}[joehays-plugin:pre-up]${NC} ⚠️  $*"
 }
 
+# Source plugin configuration for group settings
+source "${MARS_PLUGIN_ROOT}/config.sh"
+
+# =============================================================================
+# Pre-flight Permission Checks
+# =============================================================================
+
+# Check if host permissions are set up correctly for E30 multi-instance access
+# This catches permission issues BEFORE container startup fails silently
+check_host_permissions() {
+    local errors=0
+    local current_user="$(id -un)"
+
+    log_info "Checking host permissions for E30..."
+
+    # Check 1: Group exists
+    if ! getent group "${MARS_USER_CREDENTIALS_GROUP}" &>/dev/null; then
+        log_warning "Group '${MARS_USER_CREDENTIALS_GROUP}' does not exist"
+        errors=$((errors + 1))
+    fi
+
+    # Check 2: User is member of group (check /etc/group, not current session)
+    if ! grep -q "^${MARS_USER_CREDENTIALS_GROUP}:.*:.*:.*${current_user}" /etc/group 2>/dev/null; then
+        # Also check if user is primary group member
+        local user_gid=$(id -g "$current_user" 2>/dev/null)
+        local group_gid=$(getent group "${MARS_USER_CREDENTIALS_GROUP}" 2>/dev/null | cut -d: -f3)
+        if [ "$user_gid" != "$group_gid" ]; then
+            log_warning "User '${current_user}' is not a member of '${MARS_USER_CREDENTIALS_GROUP}' group"
+            errors=$((errors + 1))
+        fi
+    fi
+
+    # Check 3: Plugin directory has correct group
+    local plugin_group=$(stat -c '%G' "${MARS_PLUGIN_ROOT}" 2>/dev/null || echo "unknown")
+    if [ "$plugin_group" != "${MARS_USER_CREDENTIALS_GROUP}" ]; then
+        log_warning "Plugin directory group is '${plugin_group}', expected '${MARS_USER_CREDENTIALS_GROUP}'"
+        errors=$((errors + 1))
+    fi
+
+    # Check 4: Plugin directory has group write permission
+    local plugin_perms=$(stat -c '%a' "${MARS_PLUGIN_ROOT}" 2>/dev/null || echo "000")
+    local group_perm="${plugin_perms:1:1}"
+    if [ $((group_perm & 2)) -eq 0 ]; then
+        log_warning "Plugin directory missing group write permission"
+        errors=$((errors + 1))
+    fi
+
+    # Report results
+    if [ $errors -gt 0 ]; then
+        echo ""
+        log_warning "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        log_warning "Host permissions not configured for E30 multi-instance access"
+        log_warning ""
+        log_warning "Run this command to fix:"
+        log_warning "  ${MARS_PLUGIN_ROOT}/hooks/host-permissions.sh"
+        log_warning ""
+        log_warning "Then log out/in (or: newgrp ${MARS_USER_CREDENTIALS_GROUP})"
+        log_warning "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        # Don't fail - just warn. User may want to proceed anyway.
+        # To make this a hard failure, uncomment: return 1
+    else
+        log_success "Host permissions OK (${MARS_USER_CREDENTIALS_GROUP} group configured)"
+    fi
+
+    return 0
+}
+
 # =============================================================================
 # Configuration
 # =============================================================================
@@ -238,6 +306,12 @@ generate_auto_mounts() {
 # =============================================================================
 
 main() {
+    # Pre-flight: Check host permissions are configured
+    # Skip if running inside container (container-startup handles that)
+    if [ ! -f "/.dockerenv" ] && ! grep -q "docker\|lxc" /proc/1/cgroup 2>/dev/null; then
+        check_host_permissions
+    fi
+
     log_info "Checking for custom volume configuration..."
 
     # Check if custom volumes are enabled
