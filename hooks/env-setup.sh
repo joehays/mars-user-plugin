@@ -28,6 +28,13 @@ PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
 source "${PLUGIN_ROOT}/config.sh"
 
 # =============================================================================
+# Plugin Host Path (for Container Mounts)
+# =============================================================================
+# Tell MARS where this plugin lives on the host filesystem.
+# This gets mounted to /workspace/mars-user-plugin inside containers.
+export MARS_USER_PLUGIN_HOST_PATH="${PLUGIN_ROOT}"
+
+# =============================================================================
 # Environment Variables Export
 # =============================================================================
 
