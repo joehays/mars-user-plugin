@@ -159,6 +159,59 @@ setup_user_membership() {
     fi
 }
 
+# Set group ownership and permissions on the plugin directory itself
+setup_plugin_permissions() {
+    log_info "Setting up plugin directory permissions..."
+
+    # Check if plugin directory exists
+    if [ ! -d "${PLUGIN_ROOT}" ]; then
+        log_error "Plugin directory not found: ${PLUGIN_ROOT}"
+        return 1
+    fi
+
+    # Check current group
+    local current_group
+    current_group=$(stat -c '%G' "${PLUGIN_ROOT}" 2>/dev/null || echo "unknown")
+
+    if [ "$current_group" = "${MARS_USER_CREDENTIALS_GROUP}" ]; then
+        log_info "Plugin directory already has ${MARS_USER_CREDENTIALS_GROUP} group"
+    else
+        log_info "Setting plugin directory group to ${MARS_USER_CREDENTIALS_GROUP}..."
+        if ! sudo chgrp -R "${MARS_USER_CREDENTIALS_GROUP}" "${PLUGIN_ROOT}"; then
+            log_error "Failed to set group ownership on plugin directory"
+            return 1
+        fi
+        log_success "Set group ownership to ${MARS_USER_CREDENTIALS_GROUP}"
+    fi
+
+    # Set group write permissions on all files and directories
+    log_info "Setting group write permissions..."
+    if ! chmod -R g+rw "${PLUGIN_ROOT}" 2>/dev/null; then
+        if ! sudo chmod -R g+rw "${PLUGIN_ROOT}"; then
+            log_error "Failed to set group write permissions"
+            return 1
+        fi
+    fi
+    log_success "Set group write permissions"
+
+    # Set setgid on directories so new files inherit the group
+    log_info "Setting setgid on directories (new files inherit group)..."
+    if ! find "${PLUGIN_ROOT}" -type d -exec chmod g+s {} \; 2>/dev/null; then
+        if ! sudo find "${PLUGIN_ROOT}" -type d -exec chmod g+s {} \; ; then
+            log_error "Failed to set setgid on directories"
+            return 1
+        fi
+    fi
+    log_success "Set setgid on directories"
+
+    # Verify setup
+    local test_perms
+    test_perms=$(stat -c '%A %G' "${PLUGIN_ROOT}" 2>/dev/null)
+    log_info "Plugin directory: ${test_perms}"
+
+    return 0
+}
+
 # Set group ownership and permissions on credential files
 setup_file_permissions() {
     log_info "Setting up credential file permissions..."
@@ -233,12 +286,19 @@ setup_file_permissions() {
 # Quick Check (for mars-env.config fast path)
 # =============================================================================
 quick_check() {
-    # If user is already in the credentials group IN /etc/group, everything is likely set up
-    # Check /etc/group directly, not current shell session (which may not have activated group)
-    if grep -q "^${MARS_USER_CREDENTIALS_GROUP}:.*:.*:.*${CURRENT_USER}" /etc/group 2>/dev/null; then
-        return 0  # Already setup
+    # Check 1: User is in the credentials group IN /etc/group
+    if ! grep -q "^${MARS_USER_CREDENTIALS_GROUP}:.*:.*:.*${CURRENT_USER}" /etc/group 2>/dev/null; then
+        return 1  # Needs setup - user not in group
     fi
-    return 1  # Needs setup
+
+    # Check 2: Plugin directory has correct group
+    local plugin_group
+    plugin_group=$(stat -c '%G' "${PLUGIN_ROOT}" 2>/dev/null || echo "unknown")
+    if [ "$plugin_group" != "${MARS_USER_CREDENTIALS_GROUP}" ]; then
+        return 1  # Needs setup - plugin dir has wrong group
+    fi
+
+    return 0  # Already setup
 }
 
 # =============================================================================
@@ -274,9 +334,16 @@ main() {
     fi
     echo ""
 
-    # Step 3: Set file permissions
+    # Step 3: Set plugin directory permissions
+    if ! setup_plugin_permissions; then
+        log_error "Plugin permissions setup failed"
+        return 1
+    fi
+    echo ""
+
+    # Step 4: Set credential file permissions
     if ! setup_file_permissions; then
-        log_warning "File permissions setup incomplete (some files may need manual updates)"
+        log_warning "Credential file permissions setup incomplete (some files may need manual updates)"
     fi
     echo ""
 
@@ -284,11 +351,14 @@ main() {
     echo ""
     log_info "Summary:"
     log_info "  - Group: ${MARS_USER_CREDENTIALS_GROUP} (GID ${MARS_USER_CREDENTIALS_GID})"
-    log_info "  - Member: ${USER}"
-    log_info "  - Files: ${MARS_USER_CREDENTIALS_DIR}"
+    log_info "  - Member: ${CURRENT_USER}"
+    log_info "  - Plugin: ${PLUGIN_ROOT}"
+    log_info "  - Credentials: ${MARS_USER_CREDENTIALS_DIR}"
     echo ""
-    log_info "Containers will create joe-docs group with Sysbox-adjusted GID"
-    log_info "Container mars user will have access to mounted credential files"
+    log_info "Next steps:"
+    log_info "  1. Log out and back in (or run: newgrp ${MARS_USER_CREDENTIALS_GROUP})"
+    log_info "  2. Restart E30: mars down && mars up -d"
+    log_info "  3. Verify: mars attach && cat /etc/group | grep joe"
 }
 
 # Run main function
