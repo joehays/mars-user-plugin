@@ -39,4 +39,12 @@ services:
       # Example: SSH keys (read-only for security)
       # - ~/.ssh/id_ed25519:/root/.ssh/github_key:ro
 
+      # ==================================================================
+      # Joe's Credentials Directory
+      # ==================================================================
+      # Mount credentials at the same relative path inside container
+      # This allows config.sh to use $HOME/dev/joe-docs/dev-ops in both
+      # host ($HOME=/home/joehays) and container ($HOME=/root)
+      - ~/dev/joe-docs/dev-ops:/root/dev/joe-docs/dev-ops:ro
+
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
