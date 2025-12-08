@@ -54,16 +54,8 @@ ENABLE_CUSTOM_VOLUMES=true   # Set to false to disable custom volume mounting
 
 # Paths (use parameter expansion to handle unbound variables)
 # Generated file stays in plugin directory (mod-arch compliant)
-# Select template based on MARS_MODE
-if [ "${MARS_MODE:-}" = "research-project" ]; then
-    # E30 mode uses mars-runtime only template
-    OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.e30.yml.template"
-else
-    # E6 mode (mars-dev) uses mars-dev only template
-    # Note: Each template only defines one service to avoid Docker Compose errors
-    # when merging with base compose that only defines the relevant service
-    OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.e6.yml.template"
-fi
+# Single unified template works for both E6 and E30 (both use 'mars-container' service name)
+OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.yml.template"
 OVERRIDE_TARGET="${MARS_PLUGIN_ROOT:-}/generated/docker-compose.override.yml"
 
 # Ensure generated directory exists
