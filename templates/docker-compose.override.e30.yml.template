@@ -9,7 +9,7 @@
 # to the base compose volumes (workspace mount + Docker data volume)
 
 services:
-  mars-runtime:
+  mars-container:
     volumes:
       # ==================================================================
       # User-Specified Volume Mounts
