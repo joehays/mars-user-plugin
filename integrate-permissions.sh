@@ -8,6 +8,10 @@
 # 2. Rebuilds mars-dev container with new GID calculations
 # 3. Verifies container can access credentials
 # 4. Runs regression tests
+#
+# Usage:
+#   ./integrate-permissions.sh              # Auto-detect plugin location
+#   ./integrate-permissions.sh /path/to/plugin  # Explicit plugin path
 # =============================================================================
 set -euo pipefail
 
@@ -25,17 +29,73 @@ log_warning() { echo -e "${YELLOW}[⚠]${NC} $*"; }
 log_error() { echo -e "${RED}[✗]${NC} $*"; }
 
 # =============================================================================
-# Configuration
+# Configuration - Auto-detect or use argument
 # =============================================================================
-MARS_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PLUGIN_DIR="${MARS_REPO_ROOT}/external/mars-user-plugin"
+
+# Get the directory containing this script (plugin root)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Plugin directory: use argument, or script location, or MARS_PLUGIN_ROOT
+PLUGIN_DIR="${1:-${MARS_PLUGIN_ROOT:-$SCRIPT_DIR}}"
+
+# Find MARS repo root by searching upward for mars-env.config
+find_mars_root() {
+    local dir="$1"
+    while [ "$dir" != "/" ]; do
+        if [ -f "$dir/mars-env.config" ]; then
+            echo "$dir"
+            return 0
+        fi
+        dir="$(dirname "$dir")"
+    done
+    return 1
+}
+
+# Try to find MARS repo root
+if [ -n "${MARS_REPO_ROOT:-}" ]; then
+    # Use existing MARS_REPO_ROOT if set
+    :
+elif MARS_REPO_ROOT=$(find_mars_root "$PLUGIN_DIR"); then
+    # Found by searching upward
+    :
+else
+    log_error "Cannot find MARS repository root"
+    log_error "Run this script from within a MARS repository or set MARS_REPO_ROOT"
+    exit 1
+fi
+
+# Verify plugin directory exists
+if [ ! -d "$PLUGIN_DIR" ]; then
+    log_error "Plugin directory not found: $PLUGIN_DIR"
+    exit 1
+fi
+
+# Verify plugin has config.sh
+if [ ! -f "$PLUGIN_DIR/config.sh" ]; then
+    log_error "Plugin config.sh not found: $PLUGIN_DIR/config.sh"
+    log_error "Create config.sh with MARS_USER_CREDENTIALS_GROUP and MARS_USER_CREDENTIALS_GID"
+    exit 1
+fi
 
 # Source plugin configuration to get group name and paths
 source "${PLUGIN_DIR}/config.sh"
 
+# Verify required variables are set
+if [ -z "${MARS_USER_CREDENTIALS_GROUP:-}" ]; then
+    log_error "MARS_USER_CREDENTIALS_GROUP not set in config.sh"
+    exit 1
+fi
+
+if [ -z "${MARS_USER_CREDENTIALS_GID:-}" ]; then
+    log_error "MARS_USER_CREDENTIALS_GID not set in config.sh"
+    exit 1
+fi
+
 log_info "Starting user plugin permission system integration..."
-log_info "Plugin: ${PLUGIN_DIR}"
-log_info "Credential group: ${MARS_USER_CREDENTIALS_GROUP}"
+log_info "MARS repo:         ${MARS_REPO_ROOT}"
+log_info "Plugin:            ${PLUGIN_DIR}"
+log_info "Credential group:  ${MARS_USER_CREDENTIALS_GROUP}"
+log_info "Credential GID:    ${MARS_USER_CREDENTIALS_GID}"
 echo ""
 
 # =============================================================================
@@ -43,12 +103,6 @@ echo ""
 # =============================================================================
 log_info "Phase 1: Host Setup"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-# Check plugin exists
-if [ ! -d "$PLUGIN_DIR" ]; then
-    log_error "Plugin not found: $PLUGIN_DIR"
-    exit 1
-fi
 
 # Run host permissions setup
 log_info "Running host-permissions.sh..."
@@ -87,9 +141,9 @@ else
 fi
 
 # Check credential file permissions (check first file in credentials dir)
-if [ -d "${MARS_USER_CREDENTIALS_DIR}" ]; then
+if [ -n "${MARS_USER_CREDENTIALS_DIR:-}" ] && [ -d "${MARS_USER_CREDENTIALS_DIR}" ]; then
     # Find first file in credentials directory
-    first_file=$(find "${MARS_USER_CREDENTIALS_DIR}" -type f | head -1)
+    first_file=$(find "${MARS_USER_CREDENTIALS_DIR}" -type f 2>/dev/null | head -1)
     if [ -n "$first_file" ]; then
         file_group=$(stat -c '%G' "$first_file" 2>/dev/null || echo "unknown")
         if [ "$file_group" = "${MARS_USER_CREDENTIALS_GROUP}" ]; then
@@ -99,7 +153,7 @@ if [ -d "${MARS_USER_CREDENTIALS_DIR}" ]; then
         fi
     fi
 else
-    log_warning "Credentials directory not found: ${MARS_USER_CREDENTIALS_DIR}"
+    log_warning "Credentials directory not set or not found: ${MARS_USER_CREDENTIALS_DIR:-<not set>}"
 fi
 
 echo ""
@@ -201,29 +255,31 @@ fi
 echo ""
 
 # Test credential access (check if credentials directory is accessible)
-log_info "Testing mars user credential access..."
-if mars-dev exec -u mars mars-dev test -d "${MARS_USER_CREDENTIALS_DIR}" &>/dev/null; then
-    log_success "mars user CAN access credentials directory: ${MARS_USER_CREDENTIALS_DIR}"
+if [ -n "${MARS_USER_CREDENTIALS_DIR:-}" ]; then
+    log_info "Testing mars user credential access..."
+    if mars-dev exec -u mars mars-dev test -d "${MARS_USER_CREDENTIALS_DIR}" &>/dev/null; then
+        log_success "mars user CAN access credentials directory: ${MARS_USER_CREDENTIALS_DIR}"
 
-    # Try to read a file if it exists
-    first_file=$(mars-dev exec -u mars mars-dev find "${MARS_USER_CREDENTIALS_DIR}" -type f 2>/dev/null | head -1)
-    if [ -n "$first_file" ]; then
-        if mars-dev exec -u mars mars-dev cat "$first_file" &>/dev/null; then
-            log_success "mars user CAN read credential files"
-        else
-            log_warning "mars user CANNOT read credential files (permission denied)"
+        # Try to read a file if it exists
+        first_file=$(mars-dev exec -u mars mars-dev find "${MARS_USER_CREDENTIALS_DIR}" -type f 2>/dev/null | head -1)
+        if [ -n "$first_file" ]; then
+            if mars-dev exec -u mars mars-dev cat "$first_file" &>/dev/null; then
+                log_success "mars user CAN read credential files"
+            else
+                log_warning "mars user CANNOT read credential files (permission denied)"
+            fi
         fi
+    else
+        log_error "mars user CANNOT access credentials directory (permission denied)"
+        log_error "This may require fixing host permissions or rebuilding container"
     fi
-else
-    log_error "mars user CANNOT access credentials directory (permission denied)"
-    log_error "This may require fixing host permissions or rebuilding container"
 fi
 
 echo ""
 
 # Test environment variables
 log_info "Testing environment variable exports..."
-result=$(mars-dev exec -u mars mars-dev bash -c "cd /workspace/mars-v2 && source mars-env.config 2>/dev/null && printenv | grep -E '(CURL_CA_BUNDLE|MARS_.*_CA_BUNDLE)' | head -1")
+result=$(mars-dev exec -u mars mars-dev bash -c "cd /workspace/mars-v2 && source mars-env.config 2>/dev/null && printenv | grep -E '(CURL_CA_BUNDLE|MARS_.*_CA_BUNDLE)' | head -1" 2>/dev/null || echo "")
 if [ -n "$result" ]; then
     log_success "Environment variables exported: $result"
 else
@@ -233,22 +289,30 @@ fi
 echo ""
 
 # =============================================================================
-# Phase 4: Run Tests
+# Phase 4: Run Tests (if available)
 # =============================================================================
 log_info "Phase 4: Run Regression Tests"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-cd "$MARS_REPO_ROOT/mars-dev"
+TEST_FILE="$MARS_REPO_ROOT/mars-dev/tests/test_user_plugin_permissions.py"
 
-log_info "Running plugin permission tests..."
-if python3 -m pytest tests/test_user_plugin_permissions.py -v --tb=short 2>&1 | tee /tmp/pytest-output.txt | grep -E "(PASSED|FAILED|ERROR|passed|failed)"; then
-    if grep -q "20 passed" /tmp/pytest-output.txt; then
-        log_success "All 20 tests passed!"
+if [ -f "$TEST_FILE" ]; then
+    cd "$MARS_REPO_ROOT/mars-dev"
+
+    log_info "Running plugin permission tests..."
+    if python3 -m pytest tests/test_user_plugin_permissions.py -v --tb=short 2>&1 | tee /tmp/pytest-output.txt | grep -E "(PASSED|FAILED|ERROR|passed|failed)"; then
+        if grep -qE "[0-9]+ passed" /tmp/pytest-output.txt; then
+            passed_count=$(grep -oE "[0-9]+ passed" /tmp/pytest-output.txt | grep -oE "[0-9]+")
+            log_success "Tests passed: ${passed_count}"
+        else
+            log_warning "Some tests may have failed - check output above"
+        fi
     else
-        log_warning "Some tests may have failed - check output above"
+        log_error "Test execution failed"
     fi
 else
-    log_error "Test execution failed"
+    log_warning "Test file not found: $TEST_FILE"
+    log_warning "Skipping regression tests"
 fi
 
 echo ""
@@ -265,7 +329,9 @@ echo "  2. Test credential access inside container"
 echo "  3. Commit changes to git"
 echo ""
 echo "Documentation:"
-echo "  - Full guide: external/mars-user-plugin/INTEGRATION_GUIDE.md"
-echo "  - Test results: /tmp/pytest-output.txt"
+echo "  - Full guide: ${PLUGIN_DIR}/INTEGRATION_GUIDE.md"
+if [ -f /tmp/pytest-output.txt ]; then
+    echo "  - Test results: /tmp/pytest-output.txt"
+fi
 echo ""
 log_info "Done!"

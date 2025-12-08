@@ -10,6 +10,10 @@
 # The pre-up hook combines both into generated/docker-compose.override.yml
 #
 # Works for both E6 (mars-dev) and E30 (mars-runtime).
+#
+# =============================================================================
+# TEMPLATE: Uncomment and modify the examples below for your setup
+# =============================================================================
 
 services:
   mars-container:
@@ -20,23 +24,19 @@ services:
       # Format: - /host/path:/container/path:rw|ro
       # ==================================================================
 
-      # CAPRA credentials (from joe-docs repo)
-      - ~/dev/joe-docs/dev-ops/get_capra_access_token.sh:/root/dev/joe-docs/dev-ops/get_capra_access_token.sh:ro
-      - ~/dev/joe-docs/dev-ops/capra_access_token:/root/dev/joe-docs/dev-ops/capra_access_token:rw
-      - ~/dev/joe-docs/dev-ops/capra-api-key:/root/dev/joe-docs/dev-ops/capra-api-key:ro
-      - ~/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:/root/dev/joe-docs/dev-ops/Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem:ro
-      - ~/dev/joe-docs/dev-ops/capra_model_list.sh:/root/dev/joe-docs/dev-ops/capra_model_list.sh:ro
-      - ~/dev/joe-docs/dev-ops/capra_query.sh:/root/dev/joe-docs/dev-ops/capra_query.sh:ro
+      # Example: API credentials from a separate repo
+      # - ~/dev/my-credentials/api-token.sh:/root/credentials/api-token.sh:ro
+      # - ~/dev/my-credentials/api-key:/root/credentials/api-key:ro
 
-      # GitLab CE Personal Access Token (from joe-docs repo)
-      - ~/dev/joe-docs/dev-ops/mars-gitlab-ce-token:/root/dev/joe-docs/dev-ops/mars-gitlab-ce-token:rw
+      # Example: CA certificates for enterprise environments
+      # - ~/dev/my-credentials/ca-chain.pem:/root/credentials/ca-chain.pem:ro
 
-      # Dotfiles (from dotfiles repo)
-      - ~/dev/dotfiles/LazyVim-starter:/root/.config/nvim:rw
-      - ~/dev/dotfiles/.bashrc:/root/.bashrc:rw
-      - ~/dev/dotfiles/.zshrc:/root/.zshrc:rw
-      - ~/dev/dotfiles/.common_shrc:/root/.common_shrc:rw
+      # Example: Dotfiles from a separate repo
+      # - ~/dev/dotfiles/.bashrc:/root/.bashrc:rw
+      # - ~/dev/dotfiles/.zshrc:/root/.zshrc:rw
+      # - ~/dev/dotfiles/nvim-config:/root/.config/nvim:rw
 
-      # SSH keys (from ~/.ssh)
-      - ~/.ssh/id_ed25519:/root/.ssh/github_id_ed25519:ro
+      # Example: SSH keys (read-only for security)
+      # - ~/.ssh/id_ed25519:/root/.ssh/github_key:ro
+
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
