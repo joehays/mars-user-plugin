@@ -4,16 +4,19 @@
 # Pre-up hook: Generate docker-compose.override.yml in plugin directory
 #
 # Execution context:
-#   - Runs on HOST before 'mars-dev up' command
-#   - Working directory: mars-dev/dev-environment/
+#   - Runs on HOST before 'mars up' or 'mars-dev up' command
+#   - Working directory: varies by CLI
 #   - MARS_PLUGIN_ROOT: Path to this plugin directory
 #   - MARS_REPO_ROOT: Path to MARS repository
 #
-# Architecture (COMPOSE_FILE approach):
-#   - Template: <plugin>/templates/docker-compose.override.yml.template
-#   - Generated: <plugin>/generated/docker-compose.override.yml
-#   - mars-dev discovers this via COMPOSE_FILE env var (see compose-file-discovery.sh)
-#   - No files are copied to mars-dev/dev-environment/ (mod-arch compliant)
+# Two sources of volume mounts:
+#   1. external-mounts.yml - Mounts for files OUTSIDE this plugin
+#      (credentials repos, dotfiles repo, ~/.ssh, etc.)
+#   2. mounted-files/ - Files that LIVE in this plugin (auto-mounted)
+#
+# Generated output:
+#   - <plugin>/generated/docker-compose.override.yml
+#   - Discovered via COMPOSE_FILE env var (see compose-file-discovery.sh)
 # =============================================================================
 set -euo pipefail
 
@@ -54,8 +57,9 @@ ENABLE_CUSTOM_VOLUMES=true   # Set to false to disable custom volume mounting
 
 # Paths (use parameter expansion to handle unbound variables)
 # Generated file stays in plugin directory (mod-arch compliant)
-# Single unified template works for both E6 and E30 (both use 'mars-container' service name)
-OVERRIDE_TEMPLATE="${MARS_PLUGIN_ROOT:-}/templates/docker-compose.override.yml.template"
+# external-mounts.yml contains mounts for files OUTSIDE this plugin
+# mounted-files/ contains files that LIVE in this plugin (auto-mounted by generate_auto_mounts)
+EXTERNAL_MOUNTS="${MARS_PLUGIN_ROOT:-}/external-mounts.yml"
 OVERRIDE_TARGET="${MARS_PLUGIN_ROOT:-}/generated/docker-compose.override.yml"
 
 # Ensure generated directory exists
@@ -242,32 +246,32 @@ main() {
         return 0
     fi
 
-    # Check if template exists
-    if [ ! -f "${OVERRIDE_TEMPLATE}" ]; then
-        log_warning "Override template not found at: ${OVERRIDE_TEMPLATE}"
-        log_warning "Skipping custom volume mount setup"
+    # Check if external-mounts.yml exists
+    if [ ! -f "${EXTERNAL_MOUNTS}" ]; then
+        log_warning "external-mounts.yml not found at: ${EXTERNAL_MOUNTS}"
+        log_warning "Skipping external volume mount setup"
         return 0
     fi
 
-    # Check if target already exists and is newer than template
+    # Check if target already exists and is newer than source
     local skip_copy=false
     if [ -f "${OVERRIDE_TARGET}" ]; then
-        if [ "${OVERRIDE_TARGET}" -nt "${OVERRIDE_TEMPLATE}" ]; then
+        if [ "${OVERRIDE_TARGET}" -nt "${EXTERNAL_MOUNTS}" ]; then
             log_info "Override file is up-to-date (no changes needed)"
             skip_copy=true
         fi
     fi
 
-    # Copy template to target location if needed
+    # Copy external-mounts.yml to generated location if needed
     if [ "$skip_copy" = false ]; then
         log_info "Generating volume override configuration..."
-        cp "${OVERRIDE_TEMPLATE}" "${OVERRIDE_TARGET}"
+        cp "${EXTERNAL_MOUNTS}" "${OVERRIDE_TARGET}"
 
         # Verify copy succeeded
         if [ -f "${OVERRIDE_TARGET}" ]; then
             log_success "Custom volume configuration generated"
             log_info "Generated: ${OVERRIDE_TARGET}"
-            log_info "Edit template to customize: ${OVERRIDE_TEMPLATE}"
+            log_info "Edit to customize: ${EXTERNAL_MOUNTS}"
         else
             log_warning "Failed to create override file"
             return 1
