@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#NOTE: this is an optional file for that gets sourced by ~/.common_shrc (Joe's custom shell env config files)
+alias turbo-ice="turbo -wm icewm -geometry 1920x1080 -depth 24"
