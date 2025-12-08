@@ -1,4 +1,12 @@
 #!/bin/bash
+# .local_rc - Local shell configuration (sourced by ~/.bashrc or ~/.zshrc)
+# Add your container-specific aliases, functions, and environment variables here
 
-#NOTE: this is an optional file for that gets sourced by ~/.common_shrc (Joe's custom shell env config files)
-alias turbo-ice="turbo -wm icewm -geometry 1920x1080 -depth 24"
+# Example aliases:
+# alias ll='ls -alF'
+# alias ..='cd ..'
+
+# Example functions:
+# myfunction() {
+#     echo "Custom function"
+# }

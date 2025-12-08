@@ -1,10 +1,10 @@
 # MARS User Plugin Manifest
-# Joe Hays' Work Environment Customizations
+# Template for user-specific customizations
 
-name: joehays-work-customizations
+name: mars-user-plugin-template
 version: 1.0.0
-description: Joe's work environment dependencies for MARS E6 container
-author: Joe Hays <joe@example.com>
+description: Template for user-specific MARS container customizations
+author: Your Name <your.email@example.com>
 
 # Lifecycle hooks
 hooks:
