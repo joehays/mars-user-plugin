@@ -227,8 +227,8 @@ _install_rust_user() {
     echo 'Configuring Environment'
     echo '------------------------------'
 
-    # Add cargo environment sourcing to RC file
-    local CARGO_ENV_STRING="source \${HOME}/.cargo/env"
+    # Add cargo environment sourcing to RC file (with existence check)
+    local CARGO_ENV_STRING='[ -f "${HOME}/.cargo/env" ] && source "${HOME}/.cargo/env"'
     log_info "Adding cargo env to ${TARGET_RC_FILE}"
     cond_insert "${CARGO_ENV_STRING}" "${TARGET_RC_FILE}"
 
