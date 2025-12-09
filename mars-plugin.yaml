@@ -15,8 +15,9 @@ hooks:
   env-setup: hooks/env-setup.sh
 
 # Error handling
-# Set to false to continue on errors (recommended for optional packages)
-fail_fast: false
+# Set to true to abort immediately on hook errors (detect problems early)
+# Set to false to continue on errors (useful for optional packages)
+fail_fast: true
 
 # Requirements
 requires:
