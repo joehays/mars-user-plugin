@@ -318,10 +318,10 @@ setup_authorized_keys() {
 }
 
 # =============================================================================
-# Fix SSH File Permissions
+# Fix SSH File Permissions and Ownership
 # =============================================================================
 fix_ssh_permissions() {
-    log_info "Fixing SSH file permissions for strict SSH policy compliance..."
+    log_info "Fixing SSH file permissions and ownership for strict SSH policy compliance..."
 
     local fixed_count=0
 
@@ -331,7 +331,14 @@ fix_ssh_permissions() {
             continue
         fi
 
-        # Fix directory permissions (must be 700)
+        # Determine correct owner for this directory
+        local owner="root"
+        if [[ "$ssh_dir" == "/home/mars/.ssh" ]]; then
+            owner="mars"
+        fi
+
+        # Fix directory permissions (must be 700) and ownership
+        chown "$owner:$owner" "$ssh_dir" 2>/dev/null
         if [ "$(stat -c %a "$ssh_dir")" != "700" ]; then
             chmod 700 "$ssh_dir" 2>/dev/null && {
                 log_success "Fixed $ssh_dir directory permissions to 700"
@@ -339,8 +346,9 @@ fix_ssh_permissions() {
             }
         fi
 
-        # Fix config file (must be 600, no group write)
+        # Fix config file (must be 600 and owned by user)
         if [ -f "$ssh_dir/config" ]; then
+            chown "$owner:$owner" "$ssh_dir/config" 2>/dev/null
             if [ "$(stat -c %a "$ssh_dir/config")" != "600" ]; then
                 chmod 600 "$ssh_dir/config" 2>/dev/null && {
                     log_success "Fixed $ssh_dir/config permissions to 600"
@@ -349,8 +357,9 @@ fix_ssh_permissions() {
             fi
         fi
 
-        # Fix authorized_keys (must be 600)
+        # Fix authorized_keys (must be 600 and owned by user)
         if [ -f "$ssh_dir/authorized_keys" ]; then
+            chown "$owner:$owner" "$ssh_dir/authorized_keys" 2>/dev/null
             if [ "$(stat -c %a "$ssh_dir/authorized_keys")" != "600" ]; then
                 chmod 600 "$ssh_dir/authorized_keys" 2>/dev/null && {
                     log_success "Fixed $ssh_dir/authorized_keys permissions to 600"
@@ -359,7 +368,7 @@ fix_ssh_permissions() {
             fi
         fi
 
-        # Fix any private keys (must be 600)
+        # Fix any private keys (must be 600 and owned by user)
         # Use nullglob to avoid literal glob strings if no files match
         shopt -s nullglob
         for key in "$ssh_dir"/*_id_* "$ssh_dir"/id_*; do
@@ -369,6 +378,7 @@ fix_ssh_permissions() {
             esac
 
             if [ -f "$key" ]; then
+                chown "$owner:$owner" "$key" 2>/dev/null
                 if [ "$(stat -c %a "$key")" != "600" ]; then
                     chmod 600 "$key" 2>/dev/null && {
                         log_success "Fixed $(basename "$key") permissions to 600"
