@@ -246,7 +246,7 @@ detect_environment() {
 # Configuration File Paths
 # =============================================================================
 
-# Get the appropriate RC file path based on context
+# Get the appropriate RC file path based on context (single file - backward compatible)
 # Returns path to shell RC file for PATH/alias additions
 get_rc_file() {
     if [ "${IS_MARS_PLUGIN}" = true ]; then
@@ -260,6 +260,54 @@ get_rc_file() {
             echo "${HOME}/.bashrc"
         fi
     fi
+}
+
+# Get ALL RC files that should be configured (for both root and mars user)
+# Returns newline-separated list of RC file paths
+# In container context: returns both /root/.bashrc and /home/mars/.bashrc
+# In host context: returns user's common_shrc or bashrc
+get_all_rc_files() {
+    if [ "${IS_MARS_PLUGIN}" = true ]; then
+        # Container context - configure both root and mars user
+        local files="/root/.bashrc"
+
+        # Add mars user's bashrc if home directory exists
+        if [ -d "/home/mars" ]; then
+            files="${files}"$'\n'"/home/mars/.bashrc"
+
+            # Also add .common_shrc if it exists for mars user
+            if [ -f "/home/mars/.common_shrc" ]; then
+                files="${files}"$'\n'"/home/mars/.common_shrc"
+            fi
+        fi
+
+        # Add root's .common_shrc if it exists
+        if [ -f "/root/.common_shrc" ]; then
+            files="${files}"$'\n'"/root/.common_shrc"
+        fi
+
+        echo "$files"
+    else
+        # Host context - use user's common_shrc (if exists) or bashrc
+        if [ -f "${HOME}/.common_shrc" ]; then
+            echo "${HOME}/.common_shrc"
+        else
+            echo "${HOME}/.bashrc"
+        fi
+    fi
+}
+
+# Insert a line into ALL RC files (both root and mars user in container context)
+# Usage: cond_insert_all_rc <string_to_insert>
+cond_insert_all_rc() {
+    local STRING="$1"
+    local rc_file
+
+    while IFS= read -r rc_file; do
+        if [ -n "$rc_file" ] && [ -f "$rc_file" ]; then
+            cond_insert "$STRING" "$rc_file"
+        fi
+    done <<< "$(get_all_rc_files)"
 }
 
 # =============================================================================
@@ -276,3 +324,5 @@ export -f register_bin
 export -f cond_make_symlink
 export -f detect_environment
 export -f get_rc_file
+export -f get_all_rc_files
+export -f cond_insert_all_rc
