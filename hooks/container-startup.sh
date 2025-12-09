@@ -356,6 +356,93 @@ setup_xdg_runtime_dir() {
 }
 
 # =============================================================================
+# Copy SSH Keys from /root/.ssh to /home/mars/.ssh with Correct Ownership
+# =============================================================================
+# Bind mounts cannot change ownership (kernel limitation).
+# Solution: Copy SSH keys from /root/.ssh to /home/mars/.ssh at startup.
+# This creates mars-owned copies for SSH to work with StrictModes.
+#
+# The mars user will use these copies for SSH operations.
+# Root can still use the original bind-mounted files in /root/.ssh.
+copy_ssh_keys_for_mars_user() {
+  log_info "Copying SSH keys from /root/.ssh to /home/mars/.ssh with correct ownership..."
+
+  local root_ssh="/root/.ssh"
+  local mars_ssh="/home/mars/.ssh"
+  local copied_count=0
+
+  # Check if source SSH directory exists
+  if [ ! -d "$root_ssh" ]; then
+    log_info "No /root/.ssh directory - skipping SSH key copy"
+    return 0
+  fi
+
+  # Check if mars user exists
+  if ! id mars &>/dev/null; then
+    log_warning "mars user not found - skipping SSH key copy"
+    return 0
+  fi
+
+  # Create /home/mars/.ssh if it doesn't exist
+  if [ ! -d "$mars_ssh" ]; then
+    mkdir -p "$mars_ssh"
+    chown mars:mars "$mars_ssh"
+    chmod 700 "$mars_ssh"
+    log_info "Created $mars_ssh directory"
+  fi
+
+  # Copy SSH private keys
+  shopt -s nullglob
+  for key_file in "$root_ssh"/id_* "$root_ssh"/*_id_*; do
+    # Skip if not a file
+    [ -f "$key_file" ] || continue
+    # Skip public keys
+    [[ "$key_file" == *.pub ]] && continue
+
+    local key_name=$(basename "$key_file")
+    local target_key="$mars_ssh/$key_name"
+
+    # Copy the key file
+    cp "$key_file" "$target_key"
+    chown mars:mars "$target_key"
+    chmod 600 "$target_key"
+    log_success "Copied $key_name to $mars_ssh (mars-owned)"
+    copied_count=$((copied_count + 1))
+
+    # Also copy the public key if it exists
+    if [ -f "${key_file}.pub" ]; then
+      cp "${key_file}.pub" "${target_key}.pub"
+      chown mars:mars "${target_key}.pub"
+      chmod 644 "${target_key}.pub"
+    fi
+  done
+  shopt -u nullglob
+
+  # Copy SSH config if it exists
+  if [ -f "$root_ssh/config" ]; then
+    cp "$root_ssh/config" "$mars_ssh/config"
+    chown mars:mars "$mars_ssh/config"
+    chmod 600 "$mars_ssh/config"
+    log_success "Copied SSH config to $mars_ssh (mars-owned)"
+    copied_count=$((copied_count + 1))
+  fi
+
+  # Copy known_hosts if it exists
+  if [ -f "$root_ssh/known_hosts" ]; then
+    cp "$root_ssh/known_hosts" "$mars_ssh/known_hosts"
+    chown mars:mars "$mars_ssh/known_hosts"
+    chmod 644 "$mars_ssh/known_hosts"
+    log_info "Copied known_hosts to $mars_ssh"
+  fi
+
+  if [ $copied_count -gt 0 ]; then
+    log_success "Copied $copied_count SSH items to /home/mars/.ssh with mars ownership"
+  else
+    log_info "No SSH keys found to copy"
+  fi
+}
+
+# =============================================================================
 # Setup /home/mars Symlinks to /root/
 # =============================================================================
 # Instead of bind-mounting files to /home/mars (which have wrong ownership due
@@ -669,7 +756,13 @@ main() {
   setup_xdg_runtime_dir
   echo ""
 
-  # Setup /home/mars symlinks to /root/ (preferred approach)
+  # Copy SSH keys from /root/.ssh to /home/mars/.ssh with correct ownership
+  # This is the ONLY way to give mars user SSH keys with correct ownership
+  # because bind mounts cannot change ownership
+  copy_ssh_keys_for_mars_user
+  echo ""
+
+  # Setup /home/mars symlinks to /root/ (for RC files, etc.)
   setup_home_mars_symlinks
   echo ""
 

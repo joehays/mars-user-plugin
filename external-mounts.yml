@@ -47,8 +47,12 @@ services:
       # Directory first (ro), then specific file override (rw)
       - ${HOME}/dev/joe-docs/dev-ops/mars:/root/dev/joe-docs/dev-ops/mars:ro
       - ${HOME}/dev/joe-docs/dev-ops/mars/capra_access_token:/root/dev/joe-docs/dev-ops/mars/capra_access_token:rw
+      #
+      # SSH keys: Mount to /root/.ssh/ ONLY
+      # container-startup.sh copies to /home/mars/.ssh/ with correct ownership
+      # (bind mounts cannot change ownership - kernel limitation)
       - ${HOME}/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
-      - ${HOME}/.ssh/id_ed25519:/home/mars/.ssh/id_ed25519:ro
+      # REMOVED: /home/mars/.ssh mount - now copied at startup
 
       # ==================================================================
       # Shell RC files (from ~/dev/dotfiles via symlinks)
