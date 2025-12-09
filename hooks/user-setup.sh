@@ -41,7 +41,7 @@ detect_environment
 # DEBUG MODE: Set to true to enable minimal install for faster iteration
 # When true, only INSTALL_PERSONAL_TOOLS is enabled (and only essential tools)
 # =============================================================================
-DEBUG_FAST_BUILD=true
+DEBUG_FAST_BUILD=false
 
 # Personal tools: git, ripgrep, fzf, pandoc, development libraries, etc.
 INSTALL_PERSONAL_TOOLS=true
@@ -321,6 +321,14 @@ main() {
       echo ""
     fi
 
+    # NPM must be installed before tldr (dependency)
+    if [ "${INSTALL_NPM}" = true ]; then
+      log_info "Installing Node.js and NPM..."
+      source "${SCRIPT_DIR}/scripts/install-npm.sh"
+      install_npm
+      echo ""
+    fi
+
     if [ "${INSTALL_TLDR}" = true ]; then
       log_info "Installing tldr client..."
       source "${SCRIPT_DIR}/scripts/install-tldr.sh"
@@ -414,12 +422,7 @@ main() {
       echo ""
     fi
 
-    if [ "${INSTALL_NPM}" = true ]; then
-      log_info "Installing Node.js and NPM..."
-      source "${SCRIPT_DIR}/scripts/install-npm.sh"
-      install_npm
-      echo ""
-    fi
+    # NPM installation moved earlier (before tldr which depends on it)
 
     if [ "${INSTALL_VSC}" = true ]; then
       log_info "Installing Visual Studio Code..."
