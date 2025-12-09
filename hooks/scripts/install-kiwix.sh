@@ -26,6 +26,9 @@ install_kiwix() {
     return 0
   fi
 
+  # Ensure wget is available for downloading
+  ensure_wget || { log_error "Cannot download Kiwix without wget"; return 1; }
+
   # Download Kiwix tools
   log_info "Downloading Kiwix tools..."
   local KIWIX_VERSION="3.6.0"

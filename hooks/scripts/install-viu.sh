@@ -26,12 +26,11 @@ install_viu() {
     return 0
   fi
 
-  # Install via cargo (requires Rust)
-  if ! command -v cargo &>/dev/null; then
-    log_error "cargo not found - viu requires Rust/Cargo"
-    log_info "Please install Rust first with install-rust.sh"
+  # Install via cargo (auto-install Rust if missing)
+  ensure_cargo || {
+    log_error "Cannot install viu without cargo"
     return 1
-  fi
+  }
 
   log_info "Installing viu via cargo..."
   cargo install viu

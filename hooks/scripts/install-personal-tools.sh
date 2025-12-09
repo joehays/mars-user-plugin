@@ -20,59 +20,34 @@ detect_environment
 install_personal_tools() {
   log_info "Installing personal tools..."
 
-  apt-get update
-
-  # Install APT packages
+  # Install APT packages (batched for efficiency)
   echo '------------------------------'
   echo "Installing APT packages"
   echo '------------------------------'
 
   # System utilities
-  cond_apt_install locales && locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
-  cond_apt_install curl
-  cond_apt_install htop
-  cond_apt_install coreutils
-  cond_apt_install software-properties-common
-  cond_apt_install tree
-  cond_apt_install zsh
-  cond_apt_install wget
+  cond_apt_install locales curl htop coreutils software-properties-common tree zsh wget
+  locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 
   # Build essentials
-  cond_apt_install build-essential
-  cond_apt_install make
+  cond_apt_install build-essential make
 
   # Version control
-  cond_apt_install git
-  cond_apt_install git-lfs
+  cond_apt_install git git-lfs
 
   # CLI tools
-  cond_apt_install trash-cli
-  cond_apt_install ripgrep # https://github.com/BurntSushi/ripgrep
-  cond_apt_install fd-find # https://github.com/sharkdp/fd
-  cond_apt_install fzf     # https://github.com/junegunn/fzf
-  cond_apt_install luarocks
-  cond_apt_install pandoc
+  cond_apt_install trash-cli ripgrep fd-find fzf luarocks pandoc
 
   # Add trash-cli alias
   local TARGET_RC_FILE="$(get_rc_file)"
   cond_insert "alias rm=trash" "${TARGET_RC_FILE}"
 
-  # Development libraries
+  # Development libraries (batched for efficiency)
   echo '------------------------------'
   echo "Installing Development Libraries"
   echo '------------------------------'
-  cond_apt_install tk-dev
-  cond_apt_install libffi-dev
-  cond_apt_install liblzma-dev
-  cond_apt_install libssl-dev
-  cond_apt_install zlib1g-dev
-  cond_apt_install libbz2-dev
-  cond_apt_install libreadline-dev
-  cond_apt_install libsqlite3-dev
-  cond_apt_install llvm
-  cond_apt_install libncurses5-dev
-  cond_apt_install libncursesw5-dev
-  cond_apt_install xz-utils
+  cond_apt_install tk-dev libffi-dev liblzma-dev libssl-dev zlib1g-dev libbz2-dev \
+    libreadline-dev libsqlite3-dev llvm libncurses5-dev libncursesw5-dev xz-utils
 
   # Note: python-openssl is deprecated in Ubuntu 22.04, use python3-openssl
   cond_apt_install python3-openssl || true
@@ -104,23 +79,10 @@ install_personal_tools() {
   echo '------------------------------'
   echo "Ensuring Rust/Cargo is installed"
   echo '------------------------------'
-  if ! command -v cargo &>/dev/null; then
-    log_info "Cargo not found - installing Rust..."
-    if [ -f "${SCRIPT_DIR}/install-rust.sh" ]; then
-      bash "${SCRIPT_DIR}/install-rust.sh"
-
-      # Source cargo env to make it available for current session
-      if [ -f "${HOME}/.cargo/env" ]; then
-        source "${HOME}/.cargo/env"
-      fi
-    else
-      log_error "install-rust.sh not found at: ${SCRIPT_DIR}/install-rust.sh"
-      log_warning "Skipping Rust package installations"
-      return 0
-    fi
-  else
-    log_info "Cargo already installed ($(cargo --version))"
-  fi
+  ensure_cargo || {
+    log_warning "Could not install Rust/Cargo - skipping Rust package installations"
+    return 0
+  }
 
   # Install Cargo packages (cargo should now be available)
   if command -v cargo &>/dev/null; then

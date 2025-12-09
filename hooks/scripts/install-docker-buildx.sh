@@ -19,12 +19,11 @@ detect_environment
 install_docker_buildx() {
   log_info "Installing Docker Buildx..."
 
-  # Check if Docker is installed
-  if ! command -v docker &>/dev/null; then
-    log_error "Docker is not installed - buildx requires Docker Engine"
-    log_info "Please install Docker first with install-docker.sh"
+  # Check if Docker is installed (auto-install if missing)
+  ensure_docker || {
+    log_error "Cannot install buildx without Docker Engine"
     return 1
-  fi
+  }
 
   # Check if buildx is already available
   if docker buildx version &>/dev/null; then
@@ -38,6 +37,12 @@ install_docker_buildx() {
   cond_apt_install docker-buildx-plugin 2>/dev/null || {
     # Manual installation if apt package not available
     log_info "Installing buildx manually from GitHub..."
+
+    # Ensure curl is available for downloading
+    ensure_curl || {
+      log_error "Cannot download buildx without curl"
+      return 1
+    }
 
     local BUILDX_VERSION=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep -Po '"tag_name": "v\K[^"]*')
     local BUILDX_URL="https://github.com/docker/buildx/releases/download/v${BUILDX_VERSION}/buildx-v${BUILDX_VERSION}.linux-amd64"

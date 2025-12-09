@@ -3,7 +3,7 @@
 # install-tldr.sh
 # Install the tldr Node.js client and create a symlink
 #
-# Requirements: npm
+# Requirements: npm (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -18,45 +18,35 @@ detect_environment
 # Main Installation
 # =============================================================================
 install_tldr_client() {
-    echo
-    echo '============================================================'
-    echo 'Installing TLDR Client (Node.js)'
-    echo '============================================================'
+    log_info "Installing TLDR Client (Node.js)..."
+
+    # Check if already installed
+    if command -v tldr &>/dev/null; then
+        log_info "tldr is already installed"
+        return 0
+    fi
+
+    # Ensure npm is available (auto-installs Node.js if needed)
+    ensure_npm || {
+        log_error "Cannot install tldr without npm"
+        return 1
+    }
 
     # Configuration
     local LINK_TARGET="/usr/local/bin/tldr"
     local LINK_NAME="/usr/bin/tldr"
 
-    # --- INSTALL DEPENDENCIES VIA NPM ---
-    echo
-    echo '------------------------------'
-    echo 'Installing TLDR and dependencies via npm'
-    echo '------------------------------'
-
+    # Install tldr via npm
+    log_info "Installing tldr via npm..."
     cond_npm_install tldr || {
         log_error "Failed to install tldr via npm."
         return 1
     }
 
-    # --- CREATE SYMBOLIC LINK ---
-    echo
-    echo '------------------------------'
-    echo 'Checking/Creating Symbolic Link'
-    echo '------------------------------'
-
-    # Check if a symbolic link does NOT exist at the destination
-    if [ ! -L "${LINK_NAME}" ]; then
-        echo "Creating symbolic link: ${LINK_TARGET} -> ${LINK_NAME}"
-        ln -s "${LINK_TARGET}" "${LINK_NAME}"
-
-        if [ $? -eq 0 ]; then
-            echo "Symbolic link created successfully."
-        else
-            log_error "Failed to create symbolic link."
-            return 1
-        fi
-    else
-        echo "Symbolic link already exists. Doing nothing."
+    # Create symbolic link if target exists
+    if [ -f "${LINK_TARGET}" ] && [ ! -L "${LINK_NAME}" ]; then
+        log_info "Creating symbolic link: ${LINK_TARGET} -> ${LINK_NAME}"
+        ln -sf "${LINK_TARGET}" "${LINK_NAME}"
     fi
 
     log_success "TLDR client installation complete."

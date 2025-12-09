@@ -61,11 +61,8 @@ install_lazyvim() {
     echo '------------------------------'
     echo 'Installing DEPENDENCIES'
     echo '------------------------------'
-    cond_apt_install ripgrep
-    cond_apt_install fd-find
-    cond_apt_install luarocks
-    cond_apt_install fzf
-    cond_apt_install tree-sitter
+    # Install all APT dependencies in one batch for efficiency
+    cond_apt_install ripgrep fd-find luarocks fzf tree-sitter
 
     # --- INSTALL LAZYVIM ---
     echo

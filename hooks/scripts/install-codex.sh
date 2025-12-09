@@ -25,11 +25,11 @@ install_codex() {
     return 0
   fi
 
-  # Ensure Python and pip are available
-  if ! command -v pip3 &>/dev/null; then
-    log_error "pip3 not found - codex requires Python and pip"
+  # Ensure Python and pip are available (auto-install if missing)
+  ensure_pip3 || {
+    log_error "Cannot install codex without pip3"
     return 1
-  fi
+  }
 
   # Install codex-cli via pip
   log_info "Installing codex-cli via pip..."

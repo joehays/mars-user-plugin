@@ -26,12 +26,16 @@ install_npm() {
     return 0
   fi
 
+  # Ensure curl is available for downloading
+  ensure_curl || { log_error "Cannot add NodeSource repository without curl"; return 1; }
+
   # Install NodeSource repository for latest LTS
   log_info "Adding NodeSource repository..."
   curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
 
-  # Install Node.js and NPM
+  # Install Node.js and NPM (force apt update since we added new repository)
   log_info "Installing Node.js and NPM..."
+  _APT_UPDATED=false
   cond_apt_install nodejs
 
   # Verify installation

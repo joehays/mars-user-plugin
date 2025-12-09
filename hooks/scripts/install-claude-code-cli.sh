@@ -26,12 +26,11 @@ install_claude_code_cli() {
     return 0
   fi
 
-  # Require Node.js/NPM
-  if ! command -v npm &>/dev/null; then
-    log_warning "NPM not found - installing Node.js first..."
-    source "${_LOCAL_SCRIPT_DIR}/install-npm.sh"
-    install_npm
-  fi
+  # Require Node.js/NPM (auto-install if missing)
+  ensure_npm || {
+    log_error "Cannot install Claude Code CLI without npm"
+    return 1
+  }
 
   # Install Claude Code CLI via npm
   log_info "Installing Claude Code CLI via npm..."

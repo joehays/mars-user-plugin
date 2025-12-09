@@ -45,26 +45,55 @@ log_error() {
 # Package Installation Functions
 # =============================================================================
 
-# Check if a package is installed and install it if necessary
-# Usage: cond_apt_install <package_name>
-cond_apt_install() {
-    local PKG="${1}"
+# Track if apt-get update has been run this session
+_APT_UPDATED=false
 
-    # Check if the package status contains "ok installed"
-    if [ "$(dpkg-query -W -f='${Status}' "${PKG}" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
-        echo "Installing '${PKG}'..."
-        apt-get install -y "${PKG}"
+# Ensure apt-get update has been run (idempotent within session)
+# Usage: ensure_apt_updated
+ensure_apt_updated() {
+    if [ "$_APT_UPDATED" = false ]; then
+        log_info "Updating apt package cache..."
+        apt-get update -qq
+        _APT_UPDATED=true
+    fi
+}
+
+# Check if a package is installed and install it if necessary
+# Usage: cond_apt_install <package_name> [package_name2] ...
+# Supports multiple packages in a single call for efficiency
+cond_apt_install() {
+    local packages_to_install=()
+
+    for PKG in "$@"; do
+        # Check if the package status contains "ok installed"
+        if [ "$(dpkg-query -W -f='${Status}' "${PKG}" 2>/dev/null | grep -c "ok installed")" -eq 0 ]; then
+            packages_to_install+=("${PKG}")
+        else
+            log_info "'${PKG}' already installed."
+        fi
+    done
+
+    # If there are packages to install, install them
+    if [ ${#packages_to_install[@]} -gt 0 ]; then
+        ensure_apt_updated
+        log_info "Installing: ${packages_to_install[*]}..."
+        DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages_to_install[@]}"
 
         # Check for successful installation
         if [ $? -eq 0 ]; then
-            echo "'${PKG}' successfully installed."
+            log_info "Successfully installed: ${packages_to_install[*]}"
         else
-            log_error "Failed to install '${PKG}'."
+            log_error "Failed to install: ${packages_to_install[*]}"
             return 1
         fi
-    else
-        echo "'${PKG}' already installed."
     fi
+}
+
+# Ensure multiple APT dependencies are installed
+# Usage: ensure_apt_deps <package1> [package2] ...
+# This is an alias for cond_apt_install for semantic clarity
+ensure_apt_deps() {
+    cond_apt_install "$@"
 }
 
 # Check if a global npm package is available and install if not
@@ -77,19 +106,167 @@ cond_npm_install() {
 
     # Check the exit status of the 'which' command
     if [ $? -ne 0 ]; then
-        echo "Installing global npm package: ${PKG_NAME}..."
+        log_info "Installing global npm package: ${PKG_NAME}..."
         npm install -g "${PKG_NAME}"
 
         # Check for successful installation
         if [ $? -eq 0 ]; then
-            echo "Successfully installed: ${PKG_NAME}"
+            log_info "Successfully installed: ${PKG_NAME}"
         else
             log_error "Failed to install global npm package '${PKG_NAME}'."
             return 1
         fi
     else
-        echo "Already installed: ${PKG_NAME}"
+        log_info "Already installed: ${PKG_NAME}"
     fi
+}
+
+# =============================================================================
+# Dependency Installation Helpers
+# =============================================================================
+# These functions auto-install dependencies before installing the main tool
+
+# Ensure npm is available, installing Node.js if needed
+# Usage: ensure_npm
+ensure_npm() {
+    if command -v npm &>/dev/null; then
+        return 0
+    fi
+    log_warning "NPM not found - installing Node.js first..."
+    local script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    if [ -f "${script_dir}/install-npm.sh" ]; then
+        source "${script_dir}/install-npm.sh"
+        install_npm
+    else
+        log_error "install-npm.sh not found - cannot install npm"
+        return 1
+    fi
+}
+
+# Ensure Rust/Cargo is available
+# Usage: ensure_cargo [--system]
+ensure_cargo() {
+    if command -v cargo &>/dev/null; then
+        return 0
+    fi
+    log_warning "Cargo not found - installing Rust first..."
+    local script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    if [ -f "${script_dir}/install-rust.sh" ]; then
+        source "${script_dir}/install-rust.sh"
+        install_rust "$@"
+        # Source cargo env for current session
+        if [ -f "${HOME}/.cargo/env" ]; then
+            source "${HOME}/.cargo/env"
+        fi
+        # Also check /opt/rust for system install
+        if [ -f "/opt/rust/cargo/env" ]; then
+            export PATH="/opt/rust/cargo/bin:${PATH}"
+        fi
+    else
+        log_error "install-rust.sh not found - cannot install cargo"
+        return 1
+    fi
+}
+
+# Ensure Lua is available
+# Usage: ensure_lua
+ensure_lua() {
+    if command -v lua &>/dev/null; then
+        return 0
+    fi
+    log_warning "Lua not found - installing Lua first..."
+    local script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    if [ -f "${script_dir}/install-lua.sh" ]; then
+        source "${script_dir}/install-lua.sh"
+        install_lua
+    else
+        log_error "install-lua.sh not found - cannot install lua"
+        return 1
+    fi
+}
+
+# Ensure git is available
+# Usage: ensure_git
+ensure_git() {
+    if command -v git &>/dev/null; then
+        return 0
+    fi
+    log_info "Installing git..."
+    cond_apt_install git
+}
+
+# Ensure curl is available
+# Usage: ensure_curl
+ensure_curl() {
+    if command -v curl &>/dev/null; then
+        return 0
+    fi
+    log_info "Installing curl..."
+    cond_apt_install curl
+}
+
+# Ensure wget is available
+# Usage: ensure_wget
+ensure_wget() {
+    if command -v wget &>/dev/null; then
+        return 0
+    fi
+    log_info "Installing wget..."
+    cond_apt_install wget
+}
+
+# Ensure pip3 is available, installing Python3 if needed
+# Usage: ensure_pip3
+ensure_pip3() {
+    if command -v pip3 &>/dev/null; then
+        return 0
+    fi
+    log_warning "pip3 not found - installing Python3 first..."
+    local script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    if [ -f "${script_dir}/install-python3.sh" ]; then
+        source "${script_dir}/install-python3.sh"
+        install_python3
+    else
+        # Fallback to apt
+        cond_apt_install python3 python3-pip
+    fi
+}
+
+# Ensure Docker is available
+# Usage: ensure_docker
+ensure_docker() {
+    if command -v docker &>/dev/null; then
+        return 0
+    fi
+    log_warning "Docker not found - installing Docker Engine first..."
+    local script_dir="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
+    if [ -f "${script_dir}/install-docker.sh" ]; then
+        source "${script_dir}/install-docker.sh"
+        install_docker
+    else
+        log_error "install-docker.sh not found - cannot install docker"
+        return 1
+    fi
+}
+
+# Ensure unzip is available
+# Usage: ensure_unzip
+ensure_unzip() {
+    if command -v unzip &>/dev/null; then
+        return 0
+    fi
+    log_info "Installing unzip..."
+    cond_apt_install unzip
+}
+
+# Ensure tar is available
+# Usage: ensure_tar
+ensure_tar() {
+    if command -v tar &>/dev/null; then
+        return 0
+    fi
+    log_info "Installing tar..."
+    cond_apt_install tar
 }
 
 # =============================================================================
@@ -317,8 +494,16 @@ export -f log_info
 export -f log_success
 export -f log_warning
 export -f log_error
+export -f ensure_apt_updated
 export -f cond_apt_install
+export -f ensure_apt_deps
 export -f cond_npm_install
+export -f ensure_npm
+export -f ensure_cargo
+export -f ensure_lua
+export -f ensure_git
+export -f ensure_curl
+export -f ensure_wget
 export -f cond_insert
 export -f register_bin
 export -f cond_make_symlink

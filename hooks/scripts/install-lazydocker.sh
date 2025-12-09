@@ -26,6 +26,9 @@ install_lazydocker() {
     return 0
   fi
 
+  # Ensure curl is available for downloading
+  ensure_curl || { log_error "Cannot download lazydocker without curl"; return 1; }
+
   # Install via official script
   log_info "Installing lazydocker from GitHub releases..."
 

@@ -25,6 +25,7 @@ install_ohmyzsh() {
 
     # --- DEPENDENCY INSTALLATION ---
     cond_apt_install zsh
+    ensure_curl || { log_error "Cannot download Oh My Zsh without curl"; return 1; }
 
     # --- OH MY ZSH INSTALLATION ---
     local CWD=$(pwd)

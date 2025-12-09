@@ -28,8 +28,8 @@ install_vsc() {
 
   # Install dependencies
   log_info "Installing dependencies..."
-  cond_apt_install wget
   cond_apt_install gpg
+  ensure_wget || { log_error "Cannot download VS Code without wget"; return 1; }
 
   # Add Microsoft GPG key
   log_info "Adding Microsoft GPG key..."
@@ -40,8 +40,8 @@ install_vsc() {
   log_info "Adding VS Code repository..."
   echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
 
-  # Update and install
-  apt-get update
+  # Update and install (force apt update since we added new repository)
+  _APT_UPDATED=false
   cond_apt_install code
 
   # Cleanup

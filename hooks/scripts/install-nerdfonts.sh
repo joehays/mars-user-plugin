@@ -19,8 +19,10 @@ detect_environment
 install_nerdfonts() {
   log_info "Installing Nerd Fonts..."
 
-  # Install fontconfig if needed
+  # Ensure dependencies are available
   cond_apt_install fontconfig
+  ensure_curl || { log_error "Cannot download fonts without curl"; return 1; }
+  ensure_unzip || { log_error "Cannot extract fonts without unzip"; return 1; }
 
   # Create fonts directory
   FONTS_DIR="${HOME}/.local/share/fonts"

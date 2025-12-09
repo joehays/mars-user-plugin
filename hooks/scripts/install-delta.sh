@@ -26,12 +26,17 @@ install_delta() {
     return 0
   fi
 
-  # Install via cargo (requires Rust/Cargo)
-  if ! command -v cargo &>/dev/null; then
-    log_error "cargo not found - delta requires Rust/Cargo"
-    log_info "Please install Rust first with install-rust.sh"
+  # Install via cargo (auto-install Rust if missing)
+  ensure_cargo || {
+    log_error "Cannot install delta without cargo"
     return 1
-  fi
+  }
+
+  # Ensure git is available for configuration
+  ensure_git || {
+    log_error "Cannot configure delta without git"
+    return 1
+  }
 
   log_info "Installing delta via cargo..."
   cargo install git-delta

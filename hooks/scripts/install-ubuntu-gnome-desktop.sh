@@ -25,18 +25,15 @@ install_ubuntu_gnome_desktop() {
     return 0
   fi
 
-  # Update package lists
-  apt-get update
-
-  # Install ubuntu-gnome-desktop
+  # Install ubuntu-gnome-desktop (using cond_apt_install for consistency)
   log_info "Installing ubuntu-gnome-desktop package..."
   log_warning "This will download ~2-3GB and take 10-15 minutes"
 
-  DEBIAN_FRONTEND=noninteractive apt-get install -y ubuntu-gnome-desktop
+  cond_apt_install ubuntu-gnome-desktop
 
   # Install display manager (gdm3)
   log_info "Configuring GDM3 display manager..."
-  DEBIAN_FRONTEND=noninteractive apt-get install -y gdm3
+  cond_apt_install gdm3
 
   log_success "Ubuntu GNOME Desktop installed successfully"
   log_info "Reboot to start the desktop environment"

@@ -26,6 +26,9 @@ install_glow() {
     return 0
   fi
 
+  # Ensure curl is available for downloading GPG key
+  ensure_curl || { log_error "Cannot add glow repository without curl"; return 1; }
+
   # Install via apt repository
   log_info "Adding glow repository and installing..."
 
@@ -34,8 +37,8 @@ install_glow() {
   curl -fsSL https://repo.charm.sh/apt/gpg.key | gpg --dearmor -o /etc/apt/keyrings/charm.gpg
   echo "deb [signed-by=/etc/apt/keyrings/charm.gpg] https://repo.charm.sh/apt/ * *" | tee /etc/apt/sources.list.d/charm.list
 
-  # Update and install
-  apt-get update
+  # Update and install (force apt update since we added new repository)
+  _APT_UPDATED=false
   cond_apt_install glow
 
   log_success "glow installed successfully"

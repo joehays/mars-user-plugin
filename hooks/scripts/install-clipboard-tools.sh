@@ -18,38 +18,23 @@ detect_environment
 install_clipboard_tools() {
   log_info "Installing clipboard tools (autocutsel, xclip, xsel)..."
 
-  local installed_tools=""
-
-  # Install xclip - Command line interface to X clipboard
-  if command -v xclip &>/dev/null; then
-    log_info "xclip is already installed"
-    installed_tools="${installed_tools}xclip "
-  else
-    log_info "Installing xclip..."
-    cond_apt_install xclip && installed_tools="${installed_tools}xclip "
+  # Check if all tools are already installed
+  if command -v xclip &>/dev/null && command -v xsel &>/dev/null && command -v autocutsel &>/dev/null; then
+    log_info "All clipboard tools are already installed (xclip, xsel, autocutsel)"
+    return 0
   fi
 
-  # Install xsel - Command-line program for getting and setting X selection
-  if command -v xsel &>/dev/null; then
-    log_info "xsel is already installed"
-    installed_tools="${installed_tools}xsel "
-  else
-    log_info "Installing xsel..."
-    cond_apt_install xsel && installed_tools="${installed_tools}xsel "
-  fi
-
-  # Install autocutsel - Keep X clipboard and cutbuffer in sync
-  if command -v autocutsel &>/dev/null; then
-    log_info "autocutsel is already installed"
-    installed_tools="${installed_tools}autocutsel "
-  else
-    log_info "Installing autocutsel..."
-    cond_apt_install autocutsel && installed_tools="${installed_tools}autocutsel "
-  fi
+  # Install all clipboard tools via apt (cond_apt_install handles skip-if-installed)
+  cond_apt_install xclip xsel autocutsel
 
   # Summary
+  local installed_tools=""
+  command -v xclip &>/dev/null && installed_tools="${installed_tools}xclip "
+  command -v xsel &>/dev/null && installed_tools="${installed_tools}xsel "
+  command -v autocutsel &>/dev/null && installed_tools="${installed_tools}autocutsel "
+
   if [ -n "${installed_tools}" ]; then
-    log_success "Clipboard tools installed: ${installed_tools}"
+    log_success "Clipboard tools available: ${installed_tools}"
     log_info ""
     log_info "Usage examples:"
     log_info "  xclip -selection clipboard < file    # Copy file to clipboard"

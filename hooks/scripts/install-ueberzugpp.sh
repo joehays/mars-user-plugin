@@ -25,13 +25,13 @@ install_ueberzugpp() {
     return 0
   fi
 
-  # Install dependencies
+  # Install dependencies (batched for efficiency)
   log_info "Installing dependencies..."
-  cond_apt_install cmake
-  cond_apt_install libvips-dev
-  cond_apt_install libsixel-dev
-  cond_apt_install libchafa-dev
-  cond_apt_install libtbb-dev
+  cond_apt_install cmake libvips-dev libsixel-dev libchafa-dev libtbb-dev
+
+  # Ensure curl and wget are available for downloading
+  ensure_curl || { log_error "Cannot check version without curl"; return 1; }
+  ensure_wget || { log_error "Cannot download ueberzug++ without wget"; return 1; }
 
   # Download and install from GitHub releases
   log_info "Downloading ueberzug++ from GitHub..."

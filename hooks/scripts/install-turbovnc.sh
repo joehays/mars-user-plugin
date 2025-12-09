@@ -3,6 +3,8 @@
 # install-turbovnc.sh
 # Install TurboVNC - High-performance VNC server
 # https://www.turbovnc.org/
+#
+# Requirements: wget (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -24,6 +26,12 @@ install_turbovnc() {
     log_info "TurboVNC is already installed"
     return 0
   fi
+
+  # Ensure wget is available (auto-install if missing)
+  ensure_wget || {
+    log_error "Cannot install TurboVNC without wget"
+    return 1
+  }
 
   # Download TurboVNC from GitHub releases
   log_info "Downloading TurboVNC..."
@@ -54,10 +62,16 @@ install_turbovnc() {
     done
   fi
 
-  log_success "TurboVNC installed successfully"
-  log_info "Start server: vncserver"
-  log_info "Connect with VNC viewer to: <hostname>:<display>"
-  log_info "Note: Requires X11 environment (desktop) to be installed"
+  # Verify
+  if command -v vncserver &>/dev/null; then
+    log_success "TurboVNC installed successfully"
+    log_info "Start server: vncserver"
+    log_info "Connect with VNC viewer to: <hostname>:<display>"
+    log_info "Note: Requires X11 environment (desktop) to be installed"
+  else
+    log_error "TurboVNC installation failed"
+    return 1
+  fi
 }
 
 # =============================================================================

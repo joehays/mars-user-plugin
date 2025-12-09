@@ -26,6 +26,10 @@ install_wezterm() {
     return 0
   fi
 
+  # Ensure curl and wget are available for downloading
+  ensure_curl || { log_error "Cannot check version without curl"; return 1; }
+  ensure_wget || { log_error "Cannot download WezTerm without wget"; return 1; }
+
   # Detect Ubuntu version
   . /etc/os-release
   local UBUNTU_VERSION="${VERSION_ID}"

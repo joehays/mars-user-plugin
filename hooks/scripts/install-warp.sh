@@ -32,6 +32,9 @@ install_warp() {
     return 1
   fi
 
+  # Ensure wget is available for downloading
+  ensure_wget || { log_error "Cannot download Warp without wget"; return 1; }
+
   # Download latest .deb package
   log_info "Downloading Warp terminal..."
   local WARP_URL="https://releases.warp.dev/stable/v0.2024.10.29.08.02.stable_00/warp-terminal_0.2024.10.29.08.02.stable.00_amd64.deb"

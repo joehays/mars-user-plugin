@@ -26,6 +26,10 @@ install_wezterm_linux() {
     return 0
   fi
 
+  # Ensure curl and wget are available for downloading
+  ensure_curl || { log_error "Cannot check version without curl"; return 1; }
+  ensure_wget || { log_error "Cannot download WezTerm without wget"; return 1; }
+
   # Create bin directory
   mkdir -p "${HOME}/.local/bin"
 

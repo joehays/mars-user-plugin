@@ -3,7 +3,7 @@
 # install-nvim.sh
 # Download and install the latest Neovim binary
 #
-# Requirements: curl
+# Requirements: curl (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -18,27 +18,34 @@ detect_environment
 # Main Installation
 # =============================================================================
 install_latest_nvim() {
-    echo
-    echo '============================================================'
-    echo 'Installing Neovim (NVIM)'
-    echo '============================================================'
+    log_info "Installing Neovim..."
 
-    # --- CONFIGURATION ---
+    # Check if already installed
+    if command -v nvim &>/dev/null; then
+        local version=$(nvim --version | head -n1)
+        log_info "Neovim is already installed: ${version}"
+        return 0
+    fi
+
+    # Ensure curl is available (auto-install if missing)
+    ensure_curl || {
+        log_error "Cannot install nvim without curl"
+        return 1
+    }
+
+    # Configuration
     local DIRNAME="nvim-linux-x86_64"
     local FILENAME="${DIRNAME}.tar.gz"
     local URL="https://github.com/neovim/neovim/releases/latest/download"
     local TARGET_DIR="/opt/nvim"
     local TARGET_RC_FILE="$(get_rc_file)"
 
-    # --- DOWNLOAD ---
+    # Download
     local CWD=$(pwd)
     local DOWNLOAD_DIR="${HOME}/Downloads"
     mkdir -p "${DOWNLOAD_DIR}"
 
-    echo
-    echo "------------------------------"
-    echo "Downloading NVIM into ${DOWNLOAD_DIR}"
-    echo "------------------------------"
+    log_info "Downloading Neovim into ${DOWNLOAD_DIR}..."
 
     cd "${DOWNLOAD_DIR}" || {
         log_error "Cannot change directory to ${DOWNLOAD_DIR}"
@@ -46,39 +53,26 @@ install_latest_nvim() {
     }
 
     if [ ! -f "./${FILENAME}" ]; then
-        echo "Downloading: ${URL}/${FILENAME}"
+        log_info "Downloading: ${URL}/${FILENAME}"
         curl -LO "${URL}/${FILENAME}"
     else
-        echo "ALREADY DOWNLOADED: ${URL}/${FILENAME}"
+        log_info "Already downloaded: ${FILENAME}"
     fi
 
-    # --- INSTALL ---
-    echo
-    echo "------------------------------"
-    echo "Installing NVIM"
-    echo "------------------------------"
+    # Install
+    log_info "Installing Neovim..."
 
     # Clean up old installation
-    echo "Removing old installation: rm -rf ${TARGET_DIR}"
     rm -rf "${TARGET_DIR}"
 
     # Extract and install
-    echo "Extracting: tar -C /opt -xzf ${FILENAME}"
     tar -C /opt -xzf "${FILENAME}"
 
     # Rename to 'nvim' for a cleaner path
-    echo "Renaming /opt/${DIRNAME} to ${TARGET_DIR}"
     mv "/opt/${DIRNAME}" "${TARGET_DIR}"
 
-    # --- CONFIGURE PATH AND ALIAS ---
-    echo
-    echo "------------------------------"
-    echo "Configuring PATH and Alias"
-    echo "------------------------------"
-
-    # Add binary path (backward compatibility)
+    # Configure PATH (backward compatibility)
     local PATH_STRING="export PATH=\"\${PATH}:${TARGET_DIR}/bin\""
-    echo "Adding PATH: ${PATH_STRING} to ${TARGET_RC_FILE}"
     cond_insert "${PATH_STRING}" "${TARGET_RC_FILE}"
 
     # Register binary in system PATH (instant availability)
@@ -86,15 +80,20 @@ install_latest_nvim() {
 
     # Add alias
     local ALIAS_STRING="alias nv=\"nvim\""
-    echo "Adding Alias: ${ALIAS_STRING} to ${TARGET_RC_FILE}"
     cond_insert "${ALIAS_STRING}" "${TARGET_RC_FILE}"
 
-    # --- CLEANUP ---
-    echo "Deleting downloaded file: ${FILENAME}"
+    # Cleanup
     rm -f "${FILENAME}"
 
     cd "${CWD}"
-    log_success "Neovim installation complete. Source your RC file to update PATH."
+
+    # Verify
+    if [ -x "${TARGET_DIR}/bin/nvim" ]; then
+        log_success "Neovim installed successfully"
+    else
+        log_error "Neovim installation failed"
+        return 1
+    fi
 }
 
 # Run if executed directly (not sourced)

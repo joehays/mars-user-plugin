@@ -26,6 +26,9 @@ install_kitty() {
     return 0
   fi
 
+  # Ensure curl is available for downloading
+  ensure_curl || { log_error "Cannot download Kitty installer without curl"; return 1; }
+
   # Install via official installer
   log_info "Downloading and installing Kitty..."
   curl -L https://sw.kovidgoyal.net/kitty/installer.sh | sh /dev/stdin

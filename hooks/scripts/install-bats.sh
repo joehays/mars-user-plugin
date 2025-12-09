@@ -2,6 +2,8 @@
 # =============================================================================
 # install-bats.sh
 # Install Bats (Bash Automated Testing System) testing framework
+#
+# Requirements: git (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -24,6 +26,12 @@ install_bats() {
     log_info "Bats is already installed (${bats_version})"
     return 0
   fi
+
+  # Ensure git is available (auto-install if missing)
+  ensure_git || {
+    log_error "Cannot install bats without git"
+    return 1
+  }
 
   # Install from git
   log_info "Cloning bats-core..."

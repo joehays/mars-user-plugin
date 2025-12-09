@@ -19,12 +19,14 @@ detect_environment
 install_ragflow() {
   log_info "Installing RAGFlow..."
 
-  # Check if Docker and Docker Compose are installed
-  if ! command -v docker &>/dev/null; then
-    log_error "Docker is not installed - RAGFlow requires Docker"
-    log_info "Please install Docker first with install-docker.sh"
+  # Check if Docker is installed (auto-install if missing)
+  ensure_docker || {
+    log_error "Cannot install RAGFlow without Docker"
     return 1
-  fi
+  }
+
+  # Ensure git is available for cloning
+  ensure_git || { log_error "Cannot clone RAGFlow without git"; return 1; }
 
   # Check if RAGFlow directory already exists
   local RAGFLOW_DIR="${HOME}/ragflow"

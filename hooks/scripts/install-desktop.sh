@@ -5,6 +5,8 @@
 #
 # WARNING: This is a large install (~2-3GB, 10-15 minutes)
 # Only enable if you need GUI/RDP access to the container
+#
+# APT dependencies are auto-installed
 # =============================================================================
 set -euo pipefail
 
@@ -21,18 +23,19 @@ detect_environment
 install_desktop() {
     log_info "Installing desktop environment (this will take 10-15 minutes)..."
 
-    apt-get update
+    # Check if already installed
+    if dpkg -l | grep -q "^ii.*ubuntu-gnome-desktop"; then
+        log_info "Ubuntu GNOME desktop is already installed"
+        return 0
+    fi
 
     # Remote desktop server
     log_info "Installing XRDP..."
-    apt-get install -y xrdp
+    cond_apt_install xrdp
 
     # Full GNOME desktop environment
     log_info "Installing GNOME desktop..."
-    apt-get install -y ubuntu-gnome-desktop
-
-    # Optionally install the smaller ICEWM instead:
-    # apt-get install -y icewm
+    cond_apt_install ubuntu-gnome-desktop
 
     log_success "Desktop environment installed"
     log_info "You can now connect via RDP on port 3389"

@@ -30,11 +30,9 @@ install_docker() {
   log_info "Removing old Docker versions..."
   apt-get remove -y docker docker-engine docker.io containerd runc 2>/dev/null || true
 
-  # Install prerequisites
+  # Install prerequisites (batched for efficiency)
   log_info "Installing prerequisites..."
-  cond_apt_install ca-certificates
-  cond_apt_install curl
-  cond_apt_install gnupg
+  cond_apt_install ca-certificates curl gnupg
 
   # Add Docker's official GPG key
   log_info "Adding Docker GPG key..."
@@ -49,13 +47,10 @@ install_docker() {
     $(. /etc/os-release && echo "${VERSION_CODENAME}") stable" | \
     tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-  # Install Docker Engine
-  apt-get update
-  cond_apt_install docker-ce
-  cond_apt_install docker-ce-cli
-  cond_apt_install containerd.io
-  cond_apt_install docker-buildx-plugin
-  cond_apt_install docker-compose-plugin
+  # Install Docker Engine (batched for efficiency)
+  # Force apt update since we added new repository
+  _APT_UPDATED=false
+  cond_apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
   # Add current user to docker group (if not root)
   if [ "${USER}" != "root" ] && [ -n "${USER:-}" ]; then

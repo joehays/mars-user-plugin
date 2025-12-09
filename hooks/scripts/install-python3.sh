@@ -26,22 +26,14 @@ install_python3() {
     return 0
   fi
 
-  # Install build dependencies
+  # Install build dependencies (batched for efficiency)
   log_info "Installing build dependencies..."
-  cond_apt_install build-essential
-  cond_apt_install libssl-dev
-  cond_apt_install zlib1g-dev
-  cond_apt_install libbz2-dev
-  cond_apt_install libreadline-dev
-  cond_apt_install libsqlite3-dev
-  cond_apt_install curl
-  cond_apt_install libncursesw5-dev
-  cond_apt_install xz-utils
-  cond_apt_install tk-dev
-  cond_apt_install libxml2-dev
-  cond_apt_install libxmlsec1-dev
-  cond_apt_install libffi-dev
-  cond_apt_install liblzma-dev
+  cond_apt_install build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev \
+    libsqlite3-dev libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
+    libffi-dev liblzma-dev
+
+  # Ensure curl is available for downloading
+  ensure_curl || { log_error "Cannot download pyenv without curl"; return 1; }
 
   # Install pyenv
   log_info "Installing pyenv..."

@@ -5,6 +5,8 @@
 #
 # WARNING: This is a VERY large install (~7GB, 30-60 minutes)
 # Only enable if you need LaTeX document compilation
+#
+# Requirements: wget, perl (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -29,9 +31,18 @@ install_texlive() {
 
     # Check if already installed
     if [ -d "${texlive_install_dir}" ]; then
-        log_warning "TexLive already installed at ${texlive_install_dir} (skipping)"
+        log_info "TexLive already installed at ${texlive_install_dir} (skipping)"
         return 0
     fi
+
+    # Ensure wget is available (auto-install if missing)
+    ensure_wget || {
+        log_error "Cannot install TexLive without wget"
+        return 1
+    }
+
+    # Ensure perl is available (needed by installer)
+    cond_apt_install perl
 
     # Download installer
     cd /tmp

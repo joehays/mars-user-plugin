@@ -3,6 +3,8 @@
 # install-zotero.sh
 # Install Zotero Desktop - Reference management software
 # https://www.zotero.org/
+#
+# Requirements: wget (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -29,6 +31,12 @@ install_zotero() {
     log_info "Zotero is already available on PATH"
     return 0
   fi
+
+  # Ensure wget is available (auto-install if missing)
+  ensure_wget || {
+    log_error "Cannot install Zotero without wget"
+    return 1
+  }
 
   # Download Zotero tarball
   log_info "Downloading Zotero..."

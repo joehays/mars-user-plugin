@@ -26,6 +26,9 @@ install_ollama() {
     return 0
   fi
 
+  # Ensure curl is available for downloading
+  ensure_curl || { log_error "Cannot download Ollama without curl"; return 1; }
+
   # Install via official script
   log_info "Downloading and installing Ollama..."
   curl -fsSL https://ollama.ai/install.sh | sh

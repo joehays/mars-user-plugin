@@ -19,12 +19,11 @@ detect_environment
 install_open_webui() {
   log_info "Installing Open WebUI..."
 
-  # Check if Docker is installed
-  if ! command -v docker &>/dev/null; then
-    log_error "Docker is not installed - Open WebUI requires Docker"
-    log_info "Please install Docker first with install-docker.sh"
+  # Check if Docker is installed (auto-install if missing)
+  ensure_docker || {
+    log_error "Cannot install Open WebUI without Docker"
     return 1
-  fi
+  }
 
   # Check if container already exists
   if docker ps -a --format '{{.Names}}' | grep -q '^open-webui$'; then

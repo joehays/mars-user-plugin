@@ -3,6 +3,8 @@
 # install-luarocks.sh
 # Install LuaRocks - Package manager for Lua modules
 # https://luarocks.org/
+#
+# Requirements: lua (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -26,20 +28,24 @@ install_luarocks() {
     return 0
   fi
 
-  # Ensure Lua is installed
-  if ! command -v lua &>/dev/null; then
-    log_error "Lua is not installed - LuaRocks requires Lua"
-    log_info "Please install Lua first with install-lua.sh or via apt"
+  # Ensure Lua is installed (auto-install if missing)
+  ensure_lua || {
+    log_error "Cannot install LuaRocks without Lua"
     return 1
-  fi
+  }
 
-  # Install via apt (simpler and more reliable)
+  # Install via apt
   log_info "Installing LuaRocks via apt..."
   cond_apt_install luarocks
 
-  log_success "LuaRocks installed successfully"
-  log_info "Run 'luarocks --version' to verify installation"
-  log_info "Install Lua modules with: luarocks install <module>"
+  # Verify
+  if command -v luarocks &>/dev/null; then
+    log_success "LuaRocks installed successfully"
+    log_info "Install Lua modules with: luarocks install <module>"
+  else
+    log_error "LuaRocks installation failed"
+    return 1
+  fi
 }
 
 # =============================================================================

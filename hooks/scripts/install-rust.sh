@@ -91,6 +91,9 @@ _install_rust_system() {
     local CWD=$(pwd)
     cd /tmp || return 1
 
+    # Ensure curl is available for downloading
+    ensure_curl || { log_error "Cannot download rustup without curl"; return 1; }
+
     # Download and run rustup installer
     log_info "Running rustup installer..."
     curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
@@ -204,6 +207,9 @@ _install_rust_user() {
         log_error "Cannot change directory to ${DOWNLOAD_DIR}"
         return 1
     }
+
+    # Ensure curl is available for downloading
+    ensure_curl || { log_error "Cannot download rustup without curl"; return 1; }
 
     # Download and run rustup installer
     log_info "Running rustup installer..."

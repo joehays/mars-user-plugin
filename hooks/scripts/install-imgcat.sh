@@ -25,6 +25,9 @@ install_imgcat() {
     return 0
   fi
 
+  # Ensure curl is available for downloading
+  ensure_curl || { log_error "Cannot download imgcat without curl"; return 1; }
+
   # Install via curl (simple script)
   log_info "Downloading imgcat script..."
   curl -fsSL https://iterm2.com/utilities/imgcat -o /usr/local/bin/imgcat

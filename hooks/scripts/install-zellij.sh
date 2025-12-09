@@ -3,6 +3,8 @@
 # install-zellij.sh
 # Install Zellij - A terminal workspace with batteries included
 # https://zellij.dev/
+#
+# Requirements: wget (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -25,6 +27,12 @@ install_zellij() {
     log_info "Zellij is already installed (${zellij_version})"
     return 0
   fi
+
+  # Ensure wget is available (auto-install if missing)
+  ensure_wget || {
+    log_error "Cannot install zellij without wget"
+    return 1
+  }
 
   # Download latest Zellij release
   log_info "Downloading Zellij..."

@@ -3,6 +3,8 @@
 # install-lazygit.sh
 # Install lazygit - A simple terminal UI for git commands
 # https://github.com/jesseduffield/lazygit
+#
+# Requirements: curl (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -26,6 +28,12 @@ install_lazygit() {
     return 0
   fi
 
+  # Ensure curl is available (auto-install if missing)
+  ensure_curl || {
+    log_error "Cannot install lazygit without curl"
+    return 1
+  }
+
   # Install via official script
   log_info "Installing lazygit from GitHub releases..."
 
@@ -42,8 +50,14 @@ install_lazygit() {
   # Cleanup
   rm -f /tmp/lazygit /tmp/lazygit.tar.gz
 
-  log_success "lazygit v${LAZYGIT_VERSION} installed successfully"
-  log_info "Run 'lazygit' to start the TUI"
+  # Verify
+  if command -v lazygit &>/dev/null; then
+    log_success "lazygit v${LAZYGIT_VERSION} installed successfully"
+    log_info "Run 'lazygit' to start the TUI"
+  else
+    log_error "lazygit installation failed"
+    return 1
+  fi
 }
 
 # =============================================================================

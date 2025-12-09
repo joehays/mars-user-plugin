@@ -3,6 +3,8 @@
 # install-lua.sh
 # Install Lua programming language from source
 # https://www.lua.org/
+#
+# Requirements: build-essential, libreadline-dev, curl (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
 
@@ -26,10 +28,15 @@ install_lua() {
     return 0
   fi
 
-  # Install dependencies
+  # Ensure curl is available (auto-install if missing)
+  ensure_curl || {
+    log_error "Cannot install lua without curl"
+    return 1
+  }
+
+  # Install build dependencies
   log_info "Installing build dependencies..."
-  cond_apt_install build-essential
-  cond_apt_install libreadline-dev
+  cond_apt_install build-essential libreadline-dev
 
   # Download and build Lua
   LUA_VERSION="5.4.6"
@@ -50,8 +57,13 @@ install_lua() {
   cd /tmp
   rm -rf "lua-${LUA_VERSION}" "lua-${LUA_VERSION}.tar.gz"
 
-  log_success "Lua ${LUA_VERSION} installed successfully"
-  log_info "Run 'lua -v' to verify installation"
+  # Verify
+  if command -v lua &>/dev/null; then
+    log_success "Lua ${LUA_VERSION} installed successfully"
+  else
+    log_error "Lua installation failed"
+    return 1
+  fi
 }
 
 # =============================================================================
