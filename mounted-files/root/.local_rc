@@ -11,5 +11,5 @@
 #     echo "Custom function"
 # }
 
-#alias turbo-ice="turbo -wm icewm -geometry 2560x1440"
-alias turbo-ice="turbo -wm icewm -geometry 1920x1080"
+#alias turbo-ice="turbo -wm icewm-session -geometry 2560x1440"
+alias turbo-ice="turbo -wm icewm-session -geometry 1920x1080"
