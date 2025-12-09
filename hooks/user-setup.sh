@@ -171,7 +171,7 @@ else
   INSTALL_IMGCAT=false        # Display images in terminal (iTerm2 protocol)
   INSTALL_UEBERZUGPP=false    # Terminal image viewer with multiple backends
   INSTALL_VIU=false           # Rust-based terminal image viewer
-  INSTALL_WEZTERM_LINUX=false # WezTerm AppImage variant
+  INSTALL_WEZTERM_LINUX=true  # WezTerm GPU-accelerated terminal (apt repo)
 fi
 
 # =============================================================================
@@ -286,6 +286,17 @@ main() {
   # Update package lists once at start
   log_info "Updating apt package lists..."
   apt-get update -qq
+
+  # =============================================================================
+  # Setup Common PATH Directories
+  # =============================================================================
+  # Add ~/.local/bin to PATH in all RC files for user-installed tools
+  # This ensures binaries installed by individual scripts are immediately available
+  log_info "Setting up common PATH directories..."
+  cond_insert_all_rc 'export PATH="${HOME}/.local/bin:${PATH}"'
+  mkdir -p "${HOME}/.local/bin"
+  log_success "Added ~/.local/bin to PATH"
+  echo ""
 
   # =============================================================================
   # Execute Enabled Installation Functions

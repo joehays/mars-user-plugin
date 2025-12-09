@@ -1,9 +1,11 @@
 #!/bin/bash
 # =============================================================================
 # install-wezterm-linux.sh
-# Install WezTerm (Linux-specific AppImage variant)
-# Alternative to install-wezterm.sh that uses AppImage instead of .deb
+# Install WezTerm GPU-accelerated terminal emulator via apt repository
 # https://wezfurlong.org/wezterm/
+#
+# Uses the official apt repository from https://apt.fury.io/wez/
+# This provides stable releases with proper dependency management.
 # =============================================================================
 set -euo pipefail
 
@@ -18,47 +20,49 @@ detect_environment
 # Installation Function
 # =============================================================================
 install_wezterm_linux() {
-  log_info "Installing WezTerm (AppImage)..."
+  log_info "Installing WezTerm..."
 
   # Check if already installed
-  if [ -f "${HOME}/.local/bin/wezterm" ]; then
-    log_info "WezTerm AppImage is already installed"
+  if command -v wezterm &>/dev/null; then
+    local version=$(wezterm --version 2>/dev/null | head -n1 || echo "unknown")
+    log_info "WezTerm is already installed: ${version}"
     return 0
   fi
 
-  # Ensure curl and wget are available for downloading
-  ensure_curl || { log_error "Cannot check version without curl"; return 1; }
-  ensure_wget || { log_error "Cannot download WezTerm without wget"; return 1; }
+  # Ensure curl is available
+  ensure_curl || { log_error "Cannot install WezTerm without curl"; return 1; }
 
-  # Create bin directory
-  mkdir -p "${HOME}/.local/bin"
+  # Add WezTerm apt repository
+  # FROM: https://wezfurlong.org/wezterm/install/linux.html#using-the-apt-repo
+  log_info "Adding WezTerm apt repository..."
 
-  # Download AppImage
-  log_info "Downloading WezTerm AppImage..."
-  local WEZTERM_VERSION=$(curl -s https://api.github.com/repos/wez/wezterm/releases/latest | grep -Po '"tag_name": "\K[^"]*')
-  local WEZTERM_URL="https://github.com/wez/wezterm/releases/download/${WEZTERM_VERSION}/WezTerm-${WEZTERM_VERSION}-Ubuntu20.04.AppImage"
+  # Add GPG key
+  curl -fsSL https://apt.fury.io/wez/gpg.key | gpg --yes --dearmor -o /usr/share/keyrings/wezterm-fury.gpg
+  chmod 644 /usr/share/keyrings/wezterm-fury.gpg
 
-  wget -q "${WEZTERM_URL}" -O "${HOME}/.local/bin/wezterm"
-  chmod +x "${HOME}/.local/bin/wezterm"
+  # Add repository
+  echo 'deb [signed-by=/usr/share/keyrings/wezterm-fury.gpg] https://apt.fury.io/wez/ * *' > /etc/apt/sources.list.d/wezterm.list
 
-  # Add to PATH (backward compatibility)
-  local TARGET_RC_FILE="$(get_rc_file)"
-  cond_insert 'export PATH="${HOME}/.local/bin:${PATH}"' "${TARGET_RC_FILE}"
+  # Update and install
+  log_info "Installing WezTerm package..."
+  apt-get update -qq
+  apt-get install -y wezterm
 
-  # Register binary in system PATH (instant availability)
-  if [ -f "${HOME}/.local/bin/wezterm" ]; then
-    register_bin "${HOME}/.local/bin/wezterm"
+  # Verify installation
+  if command -v wezterm &>/dev/null; then
+    local version=$(wezterm --version 2>/dev/null | head -n1 || echo "unknown")
+    log_success "WezTerm installed successfully: ${version}"
+    log_info "Run with: wezterm"
+    log_info "Config: ~/.config/wezterm/wezterm.lua"
+  else
+    log_error "WezTerm installation failed - binary not found"
+    return 1
   fi
-
-  log_success "WezTerm AppImage installed successfully"
-  log_info "Run with: wezterm"
-  log_info "Config: ~/.config/wezterm/wezterm.lua"
-  log_info "Note: AppImage provides portable installation"
 }
 
 # =============================================================================
 # Run if executed directly (not sourced)
 # =============================================================================
 if [ "${BASH_SOURCE[0]}" = "$0" ]; then
-  install_wezterm_linux
+  install_wezterm_linux "$@"
 fi
