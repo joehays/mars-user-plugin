@@ -43,8 +43,21 @@ services:
       # Joe's Credentials (specific files only)
       # ==================================================================
       # Mount individual credential files to /root/credentials/
-      - ~/dev/joe-docs/dev-ops/mars-gitlab-ce-token:/root/credentials/mars-gitlab-ce-token:ro
-      # Add more as needed:
-      # - ~/dev/joe-docs/dev-ops/mars-creds:/root/credentials/mars-creds:ro
+      #- ~/dev/joe-docs/dev-ops/mars-gitlab-ce-token:/root/credentials/mars-gitlab-ce-token:ro
+      # Directory first (ro), then specific file override (rw)
+      - ${HOME}/dev/joe-docs/dev-ops/mars:/root/dev/joe-docs/dev-ops/mars:ro
+      - ${HOME}/dev/joe-docs/dev-ops/mars/capra_access_token:/root/dev/joe-docs/dev-ops/mars/capra_access_token:rw
+      - ${HOME}/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
+      - ${HOME}/.ssh/id_ed25519:/home/mars/.ssh/id_ed25519:ro
+
+      # ==================================================================
+      # Shell RC files (from ~/dev/dotfiles via symlinks)
+      # ==================================================================
+      - ${HOME}/.bashrc:/root/.bashrc:rw
+      - ${HOME}/.bashrc:/home/mars/.bashrc:rw
+      - ${HOME}/.zshrc:/root/.zshrc:rw
+      - ${HOME}/.zshrc:/home/mars/.zshrc:rw
+      - ${HOME}/.common_shrc:/root/.common_shrc:rw
+      - ${HOME}/.common_shrc:/home/mars/.common_shrc:rw
 
       # --- AUTO-MOUNTS-MARKER (do not remove) ---

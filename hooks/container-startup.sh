@@ -240,6 +240,38 @@ create_auto_symlinks() {
 }
 
 # =============================================================================
+# TurboVNC IceWM Desktop File Symlink
+# =============================================================================
+# TurboVNC's -wm option looks for <wm_name>.desktop in /usr/share/xsessions/
+# When using -wm icewm-session, it looks for icewm.desktop (strips -session)
+# but the actual file is icewm-session.desktop. Create symlink to fix this.
+setup_icewm_desktop_symlink() {
+    local xsessions_dir="/usr/share/xsessions"
+    local source_desktop="${xsessions_dir}/icewm-session.desktop"
+    local target_desktop="${xsessions_dir}/icewm.desktop"
+
+    # Skip if xsessions directory doesn't exist (VNC not installed)
+    if [ ! -d "$xsessions_dir" ]; then
+        return 0
+    fi
+
+    # Skip if source doesn't exist
+    if [ ! -f "$source_desktop" ]; then
+        return 0
+    fi
+
+    # Skip if symlink already exists and is correct
+    if [ -L "$target_desktop" ] && [ "$(readlink -f "$target_desktop")" = "$source_desktop" ]; then
+        log_info "IceWM desktop symlink already correct"
+        return 0
+    fi
+
+    # Create symlink
+    ln -sf "$source_desktop" "$target_desktop"
+    log_success "Created IceWM desktop symlink: icewm.desktop -> icewm-session.desktop"
+}
+
+# =============================================================================
 # SSH Authorized Keys Setup
 # =============================================================================
 setup_authorized_keys() {
@@ -470,6 +502,10 @@ main() {
     # Fix SSH file permissions for strict SSH policy compliance
     echo ""
     fix_ssh_permissions
+
+    # Setup IceWM desktop symlink for TurboVNC
+    echo ""
+    setup_icewm_desktop_symlink
 }
 
 # Run main function
