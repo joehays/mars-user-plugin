@@ -338,7 +338,8 @@ fix_ssh_permissions() {
         fi
 
         # Fix directory permissions (must be 700) and ownership
-        chown "$owner:$owner" "$ssh_dir" 2>/dev/null
+        # Note: chown may fail on bind-mounted files from host - that's OK
+        chown "$owner:$owner" "$ssh_dir" 2>/dev/null || true
         if [ "$(stat -c %a "$ssh_dir")" != "700" ]; then
             chmod 700 "$ssh_dir" 2>/dev/null && {
                 log_success "Fixed $ssh_dir directory permissions to 700"
@@ -348,7 +349,7 @@ fix_ssh_permissions() {
 
         # Fix config file (must be 600 and owned by user)
         if [ -f "$ssh_dir/config" ]; then
-            chown "$owner:$owner" "$ssh_dir/config" 2>/dev/null
+            chown "$owner:$owner" "$ssh_dir/config" 2>/dev/null || true
             if [ "$(stat -c %a "$ssh_dir/config")" != "600" ]; then
                 chmod 600 "$ssh_dir/config" 2>/dev/null && {
                     log_success "Fixed $ssh_dir/config permissions to 600"
@@ -359,7 +360,7 @@ fix_ssh_permissions() {
 
         # Fix authorized_keys (must be 600 and owned by user)
         if [ -f "$ssh_dir/authorized_keys" ]; then
-            chown "$owner:$owner" "$ssh_dir/authorized_keys" 2>/dev/null
+            chown "$owner:$owner" "$ssh_dir/authorized_keys" 2>/dev/null || true
             if [ "$(stat -c %a "$ssh_dir/authorized_keys")" != "600" ]; then
                 chmod 600 "$ssh_dir/authorized_keys" 2>/dev/null && {
                     log_success "Fixed $ssh_dir/authorized_keys permissions to 600"
@@ -378,7 +379,7 @@ fix_ssh_permissions() {
             esac
 
             if [ -f "$key" ]; then
-                chown "$owner:$owner" "$key" 2>/dev/null
+                chown "$owner:$owner" "$key" 2>/dev/null || true
                 if [ "$(stat -c %a "$key")" != "600" ]; then
                     chmod 600 "$key" 2>/dev/null && {
                         log_success "Fixed $(basename "$key") permissions to 600"
