@@ -51,7 +51,7 @@ INSTALL_TEXLIVE=false
 
 # Optional tool installations (require personal-tools to be enabled)
 INSTALL_NVIM=true
-INSTALL_LAZYVIM=false  # Set to true after cloning LazyVim-starter
+INSTALL_LAZYVIM=false # Set to true after cloning LazyVim-starter
 INSTALL_OHMYZSH=true
 INSTALL_TLDR=true
 INSTALL_RUST=true # Rust/Cargo (needed for cargo packages like eza, md-tui)
@@ -67,10 +67,11 @@ INSTALL_LUA=false       # Lua programming language (needed for some Neovim plugi
 INSTALL_LUAROCKS=false  # LuaRocks package manager (needs Lua)
 
 # Medium-priority tools (AI/Development)
-INSTALL_CODEX=false      # OpenAI Codex CLI for AI code generation
-INSTALL_GEMINI_CLI=false # Google Gemini CLI for AI assistance
-INSTALL_NPM=false        # Node.js and NPM package manager
-INSTALL_VSC=false        # Visual Studio Code editor
+INSTALL_CLAUDE_CODE_CLI=true # Claude Code CLI for AI coding assistance
+INSTALL_CODEX=false          # OpenAI Codex CLI for AI code generation
+INSTALL_GEMINI_CLI=false     # Google Gemini CLI for AI assistance
+INSTALL_NPM=true             # Node.js and NPM package manager
+INSTALL_VSC=false            # Visual Studio Code editor
 
 # Medium-priority tools (Terminal emulators)
 INSTALL_KITTY=false   # Kitty terminal emulator
@@ -131,7 +132,7 @@ configure_github_ssh() {
 
   # Append GitHub host configuration
   log_info "Adding GitHub SSH host configuration to ${ssh_config}"
-  cat >> "${ssh_config}" <<'EOF'
+  cat >>"${ssh_config}" <<'EOF'
 
 # GitHub SSH Configuration (GitLab Issue #7)
 Host github.com
@@ -145,7 +146,6 @@ EOF
 
   log_success "GitHub SSH host configuration added to ${ssh_config_mars}"
 
-
   local ssh_dir_mars="/home/mars/.ssh"
   local ssh_config_mars="${ssh_dir_mars}/config"
   local ssh_key_mars="${ssh_dir_mars}/github_id_ed25519"
@@ -155,7 +155,6 @@ EOF
     log_warn "GitHub SSH key not found at ${ssh_key_mars}, skipping SSH config"
     return 0
   fi
-
 
   # Create mars .ssh directory if it doesn't exist
   if [ ! -d "${ssh_dir_mars}" ]; then
@@ -172,7 +171,7 @@ EOF
 
   # Append GitHub host configuration for mars user
   log_info "Adding GitHub SSH host configuration to ${ssh_config_mars}"
-  cat >> "${ssh_config_mars}" <<'EOF'
+  cat >>"${ssh_config_mars}" <<'EOF'
 
 # GitHub SSH Configuration (GitLab Issue #7)
 Host github.com
@@ -312,6 +311,13 @@ main() {
     fi
 
     # Medium-priority AI/Development tools
+    if [ "${INSTALL_CLAUDE_CODE_CLI}" = true ]; then
+      log_info "Installing Claude Code CLI..."
+      source "${SCRIPT_DIR}/scripts/install-claude-code-cli.sh"
+      install_claude_code_cli || true
+      echo ""
+    fi
+
     if [ "${INSTALL_CODEX}" = true ]; then
       log_info "Installing OpenAI Codex CLI..."
       source "${SCRIPT_DIR}/scripts/install-codex.sh"
@@ -544,6 +550,7 @@ main() {
     echo "    ├─ Lua:         $([ "${INSTALL_LUA}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "    └─ LuaRocks:    $([ "${INSTALL_LUAROCKS}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "  AI/Dev Tools:"
+    echo "    ├─ Claude CLI:  $([ "${INSTALL_CLAUDE_CODE_CLI}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "    ├─ Codex:       $([ "${INSTALL_CODEX}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "    ├─ Gemini CLI:  $([ "${INSTALL_GEMINI_CLI}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "    ├─ NPM:         $([ "${INSTALL_NPM}" = true ] && echo "✅" || echo "⏭️ ")"
