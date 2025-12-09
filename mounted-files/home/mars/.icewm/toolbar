@@ -2,7 +2,7 @@
 # Format: prog "Label" /path/to/icon /path/to/executable
 # Icons are stored in /usr/share/pixmaps/ (mounted from plugin)
 
-prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm
 prog "Firefox" /usr/share/pixmaps/firefox.png firefox
-prog "GitLab" /usr/share/pixmaps/gitlab.png xdg-open http://localhost:8929
+prog "GitLab" /usr/share/pixmaps/gitlab.png firefox http://localhost:8929
 prog "Zotero" /usr/share/pixmaps/zotero.png zotero
+# prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm  # Requires image rebuild
