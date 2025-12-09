@@ -57,11 +57,12 @@ services:
       # ==================================================================
       # Shell RC files (from ~/dev/dotfiles via symlinks)
       # ==================================================================
+      # Mount to /root/ ONLY - container-startup.sh creates symlinks
+      # from /home/mars/.bashrc -> /root/.bashrc (etc.) for mars user access
+      # (bind mounts to /home/mars would have wrong ownership)
       - ${HOME}/.bashrc:/root/.bashrc:rw
-      - ${HOME}/.bashrc:/home/mars/.bashrc:rw
       - ${HOME}/.zshrc:/root/.zshrc:rw
-      - ${HOME}/.zshrc:/home/mars/.zshrc:rw
       - ${HOME}/.common_shrc:/root/.common_shrc:rw
-      - ${HOME}/.common_shrc:/home/mars/.common_shrc:rw
+      # REMOVED: /home/mars/ mounts - now symlinked at startup
 
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
