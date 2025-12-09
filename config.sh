@@ -26,4 +26,4 @@ export MARS_USER_CREDENTIALS_GROUP="${MARS_USER_CREDENTIALS_GROUP:-joe-docs}"
 # Credentials Directory
 # Base path for credential files inside container
 # Files are mounted from ~/dev/joe-docs/dev-ops/* to /root/credentials/*
-export MARS_USER_CREDENTIALS_DIR="${MARS_USER_CREDENTIALS_DIR:-/root/credentials}"
+export MARS_USER_CREDENTIALS_DIR="${MARS_USER_CREDENTIALS_DIR:-${HOME}/dev/joe-docs/dev-ops/mars}"

@@ -37,6 +37,12 @@ detect_environment
 # Configuration: Enable/Disable Installation Categories
 # =============================================================================
 
+# =============================================================================
+# DEBUG MODE: Set to true to enable minimal install for faster iteration
+# When true, only INSTALL_PERSONAL_TOOLS is enabled (and only essential tools)
+# =============================================================================
+DEBUG_FAST_BUILD=true
+
 # Personal tools: git, ripgrep, fzf, pandoc, development libraries, etc.
 INSTALL_PERSONAL_TOOLS=true
 
@@ -49,56 +55,124 @@ INSTALL_PYTHON_LIBS=false
 # TexLive: Full LaTeX distribution (~7GB, 30-60 min)
 INSTALL_TEXLIVE=false
 
-# Optional tool installations (require personal-tools to be enabled)
-INSTALL_NVIM=true
-INSTALL_LAZYVIM=false # Set to true after cloning LazyVim-starter
-INSTALL_OHMYZSH=true
-INSTALL_TLDR=true
-INSTALL_RUST=true # Rust/Cargo (needed for cargo packages like eza, md-tui)
+# When DEBUG_FAST_BUILD=true, disable most optional tools
+if [ "${DEBUG_FAST_BUILD}" = true ]; then
+  # Optional tool installations (require personal-tools to be enabled)
+  INSTALL_NVIM=false
+  INSTALL_LAZYVIM=false
+  INSTALL_OHMYZSH=false
+  INSTALL_TLDR=false
+  INSTALL_RUST=false
 
-# Additional development tools (high-priority)
-INSTALL_DELTA=true      # git-delta: Better git diffs with syntax highlighting
-INSTALL_LAZYGIT=true    # lazygit: Terminal UI for git
-INSTALL_LAZYDOCKER=true # lazydocker: Terminal UI for docker
-INSTALL_GLOW=true       # glow: Render markdown in terminal
-INSTALL_FIRACODE=true   # Fira Code font with programming ligatures
-INSTALL_NERDFONTS=true  # Nerd Fonts: Patched fonts with icons
-INSTALL_LUA=false       # Lua programming language (needed for some Neovim plugins)
-INSTALL_LUAROCKS=false  # LuaRocks package manager (needs Lua)
+  # Additional development tools (high-priority)
+  INSTALL_DELTA=false
+  INSTALL_LAZYGIT=false
+  INSTALL_LAZYDOCKER=false
+  INSTALL_GLOW=false
+  INSTALL_FIRACODE=false
+  INSTALL_NERDFONTS=false
+  INSTALL_LUA=false
+  INSTALL_LUAROCKS=false
 
-# Medium-priority tools (AI/Development)
-INSTALL_CLAUDE_CODE_CLI=true # Claude Code CLI for AI coding assistance
-INSTALL_CODEX=false          # OpenAI Codex CLI for AI code generation
-INSTALL_GEMINI_CLI=false     # Google Gemini CLI for AI assistance
-INSTALL_NPM=true             # Node.js and NPM package manager
-INSTALL_VSC=false            # Visual Studio Code editor
+  # Medium-priority tools (AI/Development)
+  INSTALL_CLAUDE_CODE_CLI=false
+  INSTALL_CODEX=false
+  INSTALL_GEMINI_CLI=false
+  INSTALL_NPM=false
+  INSTALL_VSC=false
 
-# Medium-priority tools (Terminal emulators)
-INSTALL_KITTY=false   # Kitty terminal emulator
-INSTALL_WARP=false    # Warp terminal with AI features
-INSTALL_WEZTERM=false # WezTerm GPU-accelerated terminal
+  # Medium-priority tools (Terminal emulators)
+  INSTALL_KITTY=false
+  INSTALL_WARP=false
+  INSTALL_WEZTERM=false
 
-# Low-priority tools (Infrastructure - redundant with E6 but useful standalone)
-INSTALL_DOCKER=false        # Docker Engine (already in E6)
-INSTALL_DOCKER_BUILDX=false # Docker buildx plugin (already in E6)
-INSTALL_PYTHON3=false       # Python with pyenv (already in E6)
+  # Low-priority tools (Infrastructure - redundant with E6 but useful standalone)
+  INSTALL_DOCKER=false
+  INSTALL_DOCKER_BUILDX=false
+  INSTALL_PYTHON3=false
 
-# Low-priority tools (AI/LLM - redundant with MARS but useful standalone)
-INSTALL_OLLAMA=false     # Ollama local LLM runner (MARS has this)
-INSTALL_OPEN_WEBUI=false # Open WebUI for Ollama
-INSTALL_RAGFLOW=false    # RAGFlow engine (MARS has RAG)
+  # Low-priority tools (AI/LLM - redundant with MARS but useful standalone)
+  INSTALL_OLLAMA=false
+  INSTALL_OPEN_WEBUI=false
+  INSTALL_RAGFLOW=false
 
-# Low-priority tools (Specialized)
-INSTALL_KIWIX=true         # Offline Wikipedia reader
-INSTALL_TURBOVNC=true      # High-performance VNC server
-INSTALL_UBUNTU_GNOME=false # Ubuntu GNOME Desktop (alternative to INSTALL_DESKTOP)
-INSTALL_ICEWM=true         # IceWM lightweight window manager (~10MB alternative to GNOME)
+  # Low-priority tools (Specialized)
+  INSTALL_KIWIX=false
+  INSTALL_TURBOVNC=false
+  INSTALL_UBUNTU_GNOME=false
+  INSTALL_ICEWM=false
 
-# Low-priority tools (Image display)
-INSTALL_IMGCAT=false        # Display images in terminal (iTerm2 protocol)
-INSTALL_UEBERZUGPP=false    # Terminal image viewer with multiple backends
-INSTALL_VIU=false           # Rust-based terminal image viewer
-INSTALL_WEZTERM_LINUX=false # WezTerm AppImage variant
+  # E6 parity tools (features from E6 not in base E30)
+  INSTALL_BATS=false
+  INSTALL_ZELLIJ=false
+  INSTALL_FIREFOX=false
+  INSTALL_ZOTERO=false
+  INSTALL_CLIPBOARD_TOOLS=false
+
+  # Low-priority tools (Image display)
+  INSTALL_IMGCAT=false
+  INSTALL_UEBERZUGPP=false
+  INSTALL_VIU=false
+  INSTALL_WEZTERM_LINUX=false
+else
+  # Optional tool installations (require personal-tools to be enabled)
+  INSTALL_NVIM=true
+  INSTALL_LAZYVIM=false # Set to true after cloning LazyVim-starter
+  INSTALL_OHMYZSH=true
+  INSTALL_TLDR=true
+  INSTALL_RUST=true # Rust/Cargo (needed for cargo packages like eza, md-tui)
+
+  # Additional development tools (high-priority)
+  INSTALL_DELTA=true      # git-delta: Better git diffs with syntax highlighting
+  INSTALL_LAZYGIT=true    # lazygit: Terminal UI for git
+  INSTALL_LAZYDOCKER=true # lazydocker: Terminal UI for docker
+  INSTALL_GLOW=true       # glow: Render markdown in terminal
+  INSTALL_FIRACODE=true   # Fira Code font with programming ligatures
+  INSTALL_NERDFONTS=true  # Nerd Fonts: Patched fonts with icons
+  INSTALL_LUA=false       # Lua programming language (needed for some Neovim plugins)
+  INSTALL_LUAROCKS=false  # LuaRocks package manager (needs Lua)
+
+  # Medium-priority tools (AI/Development)
+  INSTALL_CLAUDE_CODE_CLI=true # Claude Code CLI for AI coding assistance
+  INSTALL_CODEX=false          # OpenAI Codex CLI for AI code generation
+  INSTALL_GEMINI_CLI=false     # Google Gemini CLI for AI assistance
+  INSTALL_NPM=true             # Node.js and NPM package manager
+  INSTALL_VSC=false            # Visual Studio Code editor
+
+  # Medium-priority tools (Terminal emulators)
+  INSTALL_KITTY=false   # Kitty terminal emulator
+  INSTALL_WARP=false    # Warp terminal with AI features
+  INSTALL_WEZTERM=false # WezTerm GPU-accelerated terminal
+
+  # Low-priority tools (Infrastructure - redundant with E6 but useful standalone)
+  INSTALL_DOCKER=false        # Docker Engine (already in E6)
+  INSTALL_DOCKER_BUILDX=false # Docker buildx plugin (already in E6)
+  INSTALL_PYTHON3=false       # Python with pyenv (already in E6)
+
+  # Low-priority tools (AI/LLM - redundant with MARS but useful standalone)
+  INSTALL_OLLAMA=false     # Ollama local LLM runner (MARS has this)
+  INSTALL_OPEN_WEBUI=false # Open WebUI for Ollama
+  INSTALL_RAGFLOW=false    # RAGFlow engine (MARS has RAG)
+
+  # Low-priority tools (Specialized)
+  INSTALL_KIWIX=true         # Offline Wikipedia reader
+  INSTALL_TURBOVNC=true      # High-performance VNC server
+  INSTALL_UBUNTU_GNOME=false # Ubuntu GNOME Desktop (alternative to INSTALL_DESKTOP)
+  INSTALL_ICEWM=true         # IceWM lightweight window manager (~10MB alternative to GNOME)
+
+  # E6 parity tools (features from E6 not in base E30)
+  INSTALL_BATS=true          # Bats - Bash Automated Testing System
+  INSTALL_ZELLIJ=true        # Zellij terminal multiplexer
+  INSTALL_FIREFOX=true       # Firefox ESR web browser
+  INSTALL_ZOTERO=true        # Zotero desktop reference manager
+  INSTALL_CLIPBOARD_TOOLS=true # Clipboard tools (autocutsel, xclip, xsel)
+
+  # Low-priority tools (Image display)
+  INSTALL_IMGCAT=false        # Display images in terminal (iTerm2 protocol)
+  INSTALL_UEBERZUGPP=false    # Terminal image viewer with multiple backends
+  INSTALL_VIU=false           # Rust-based terminal image viewer
+  INSTALL_WEZTERM_LINUX=false # WezTerm AppImage variant
+fi
 
 # =============================================================================
 # SSH Configuration Functions
@@ -113,7 +187,7 @@ configure_github_ssh() {
 
   # Check if GitHub SSH key exists  (mounted by 'mars-user-plugin' automounting mechanism)
   if [ ! -f "${ssh_key}" ]; then
-    log_warn "GitHub SSH key not found at ${ssh_key}, skipping SSH config"
+    log_warning "GitHub SSH key not found at ${ssh_key}, skipping SSH config"
     return 0
   fi
 
@@ -152,7 +226,7 @@ EOF
 
   # Check if GitHub SSH key exists (mounted by 'mars-user-plugin' automounting mechanism)
   if [ ! -f "${ssh_key_mars}" ]; then
-    log_warn "GitHub SSH key not found at ${ssh_key_mars}, skipping SSH config"
+    log_warning "GitHub SSH key not found at ${ssh_key_mars}, skipping SSH config"
     return 0
   fi
 
@@ -191,6 +265,14 @@ EOF
 # =============================================================================
 
 main() {
+  echo ""
+  echo "========================================================================"
+  echo "=== JOEHAYS-MARS-PLUGIN: user-setup.sh STARTING ==="
+  echo "=== Plugin root: ${PLUGIN_ROOT:-NOT SET} ==="
+  echo "=== DEBUG_FAST_BUILD: ${DEBUG_FAST_BUILD:-false} ==="
+  echo "========================================================================"
+  echo ""
+
   log_info "Starting joehays-work-customizations setup..."
 
   if [ "${IS_MARS_PLUGIN}" = true ]; then
@@ -247,9 +329,9 @@ main() {
     fi
 
     if [ "${INSTALL_RUST}" = true ]; then
-      log_info "Installing Rust and Cargo..."
+      log_info "Installing Rust and Cargo (system-level)..."
       source "${SCRIPT_DIR}/scripts/install-rust.sh"
-      install_rust || true
+      install_rust --system || true
       echo ""
     fi
 
@@ -285,14 +367,14 @@ main() {
     if [ "${INSTALL_FIRACODE}" = true ]; then
       log_info "Installing Fira Code font..."
       source "${SCRIPT_DIR}/scripts/install-firacode.sh"
-      install_firacode || log_warn "Fira Code installation failed (non-critical, continuing...)"
+      install_firacode || log_warning "Fira Code installation failed (non-critical, continuing...)"
       echo ""
     fi
 
     if [ "${INSTALL_NERDFONTS}" = true ]; then
       log_info "Installing Nerd Fonts..."
       source "${SCRIPT_DIR}/scripts/install-nerdfonts.sh"
-      install_nerdfonts || log_warn "Nerd Fonts installation failed (non-critical, continuing...)"
+      install_nerdfonts || log_warning "Nerd Fonts installation failed (non-critical, continuing...)"
       echo ""
     fi
 
@@ -444,7 +526,7 @@ main() {
       # Script is in /usr/local/bin (installed by Dockerfile)
       if command -v configure-icewm.sh >/dev/null 2>&1; then
         log_info "Configuring IceWM with plugin customization..."
-        configure-icewm.sh || log_warn "IceWM configuration failed (non-critical)"
+        configure-icewm.sh || log_warning "IceWM configuration failed (non-critical)"
         echo ""
       fi
     fi
@@ -475,6 +557,42 @@ main() {
       log_info "Installing WezTerm (Linux AppImage)..."
       source "${SCRIPT_DIR}/scripts/install-wezterm-linux.sh"
       install_wezterm_linux
+      echo ""
+    fi
+
+    # E6 parity tools (features from E6 not in base E30)
+    if [ "${INSTALL_BATS}" = true ]; then
+      log_info "Installing Bats testing framework..."
+      source "${SCRIPT_DIR}/scripts/install-bats.sh"
+      install_bats || true
+      echo ""
+    fi
+
+    if [ "${INSTALL_ZELLIJ}" = true ]; then
+      log_info "Installing Zellij..."
+      source "${SCRIPT_DIR}/scripts/install-zellij.sh"
+      install_zellij || true
+      echo ""
+    fi
+
+    if [ "${INSTALL_FIREFOX}" = true ]; then
+      log_info "Installing Firefox ESR..."
+      source "${SCRIPT_DIR}/scripts/install-firefox.sh"
+      install_firefox || true
+      echo ""
+    fi
+
+    if [ "${INSTALL_ZOTERO}" = true ]; then
+      log_info "Installing Zotero Desktop..."
+      source "${SCRIPT_DIR}/scripts/install-zotero.sh"
+      install_zotero || true
+      echo ""
+    fi
+
+    if [ "${INSTALL_CLIPBOARD_TOOLS}" = true ]; then
+      log_info "Installing clipboard tools..."
+      source "${SCRIPT_DIR}/scripts/install-clipboard-tools.sh"
+      install_clipboard_tools || true
       echo ""
     fi
   fi
@@ -577,6 +695,12 @@ main() {
     echo "    ├─ ueberzug++:  $([ "${INSTALL_UEBERZUGPP}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "    ├─ viu:         $([ "${INSTALL_VIU}" = true ] && echo "✅" || echo "⏭️ ")"
     echo "    └─ wezterm-linux: $([ "${INSTALL_WEZTERM_LINUX}" = true ] && echo "✅" || echo "⏭️ ")"
+    echo "  E6 Parity:"
+    echo "    ├─ Bats:        $([ "${INSTALL_BATS}" = true ] && echo "✅" || echo "⏭️ ")"
+    echo "    ├─ Zellij:      $([ "${INSTALL_ZELLIJ}" = true ] && echo "✅" || echo "⏭️ ")"
+    echo "    ├─ Firefox:     $([ "${INSTALL_FIREFOX}" = true ] && echo "✅" || echo "⏭️ ")"
+    echo "    ├─ Zotero:      $([ "${INSTALL_ZOTERO}" = true ] && echo "✅" || echo "⏭️ ")"
+    echo "    └─ Clipboard:   $([ "${INSTALL_CLIPBOARD_TOOLS}" = true ] && echo "✅" || echo "⏭️ ")"
   fi
   echo "Desktop Env:      $([ "${INSTALL_DESKTOP}" = true ] && echo "✅ Installed" || echo "⏭️  Skipped")"
   echo "Python Dev Libs:  $([ "${INSTALL_PYTHON_LIBS}" = true ] && echo "✅ Installed" || echo "⏭️  Skipped (already in E6)")"
