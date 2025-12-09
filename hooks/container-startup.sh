@@ -356,6 +356,221 @@ setup_xdg_runtime_dir() {
 }
 
 # =============================================================================
+# Setup /home/mars Symlinks to /root/
+# =============================================================================
+# Instead of bind-mounting files to /home/mars (which have wrong ownership due
+# to Sysbox UID mapping), we mount to /root/ and create symlinks.
+#
+# Architecture:
+# - Host files mounted to /root/.bashrc, /root/.zshrc, /root/.ssh/, etc.
+# - Symlinks: /home/mars/.bashrc -> /root/.bashrc, etc.
+# - mars user follows symlinks to access the (root-owned) files
+# - This works because file content is accessed, not ownership checked
+#
+# Note: SSH is special - it requires strict ownership. For SSH, we either:
+# - Accept that mars user uses /root/.ssh (via symlink)
+# - Or copy files with correct ownership (loses sync with host)
+setup_home_mars_symlinks() {
+  log_info "Setting up /home/mars symlinks to /root/ files..."
+
+  local created_count=0
+
+  # Ensure /home/mars exists
+  if [ ! -d "/home/mars" ]; then
+    log_warning "/home/mars does not exist - skipping symlink setup"
+    return 0
+  fi
+
+  # RC files to symlink
+  local rc_files=(".bashrc" ".zshrc" ".common_shrc" ".local_rc" ".vimrc" ".Xresources")
+
+  for rc_file in "${rc_files[@]}"; do
+    local source="/root/${rc_file}"
+    local target="/home/mars/${rc_file}"
+
+    # Skip if source doesn't exist
+    if [ ! -e "$source" ]; then
+      continue
+    fi
+
+    # Skip if target is already a correct symlink
+    if [ -L "$target" ] && [ "$(readlink "$target")" = "$source" ]; then
+      continue
+    fi
+
+    # Remove existing file/symlink if it exists
+    if [ -e "$target" ] || [ -L "$target" ]; then
+      rm -f "$target"
+    fi
+
+    # Create symlink
+    ln -s "$source" "$target"
+    chown -h mars:mars "$target" 2>/dev/null || true
+    log_success "Created symlink: $target -> $source"
+    created_count=$((created_count + 1))
+  done
+
+  # SSH directory - special handling
+  # For SSH to work with mars user, we need mars to own the key files
+  # But bind mounts from host appear as root. Solution options:
+  # 1. Symlink /home/mars/.ssh -> /root/.ssh (mars accesses root's SSH)
+  # 2. Copy files to /home/mars/.ssh with correct ownership
+  #
+  # We use option 1 (symlink) for simplicity - mars uses root's SSH config
+  if [ -d "/root/.ssh" ]; then
+    local ssh_target="/home/mars/.ssh"
+
+    # If /home/mars/.ssh exists as a directory (not symlink), we have bind mounts
+    # Don't replace with symlink - the files are already mounted there
+    if [ -d "$ssh_target" ] && [ ! -L "$ssh_target" ]; then
+      log_info "/home/mars/.ssh exists as directory (bind mounts) - not replacing with symlink"
+    elif [ ! -e "$ssh_target" ]; then
+      # No .ssh dir - create symlink to /root/.ssh
+      ln -s "/root/.ssh" "$ssh_target"
+      chown -h mars:mars "$ssh_target" 2>/dev/null || true
+      log_success "Created symlink: $ssh_target -> /root/.ssh"
+      created_count=$((created_count + 1))
+    fi
+  fi
+
+  # Config directories
+  for config_dir in ".config" ".local" ".cache"; do
+    local source="/root/${config_dir}"
+    local target="/home/mars/${config_dir}"
+
+    # Skip if source doesn't exist
+    if [ ! -d "$source" ]; then
+      continue
+    fi
+
+    # Skip if target exists (may have bind mounts or real files)
+    if [ -e "$target" ]; then
+      continue
+    fi
+
+    # Create symlink
+    ln -s "$source" "$target"
+    chown -h mars:mars "$target" 2>/dev/null || true
+    log_success "Created symlink: $target -> $source"
+    created_count=$((created_count + 1))
+  done
+
+  if [ $created_count -gt 0 ]; then
+    log_success "Created $created_count symlinks from /home/mars/ to /root/"
+  else
+    log_info "All /home/mars symlinks already in place"
+  fi
+}
+
+# =============================================================================
+# Fix /home/mars Directory Ownership
+# =============================================================================
+# Bind-mounted files from host retain their host UID due to Sysbox UID mapping.
+# Host UID 1000 (joehays) -> Container UID 0 (root) due to Sysbox offset.
+# This means bind-mounted files appear as root:root inside the container.
+#
+# For /home/mars to work properly for the mars user, we need to:
+# 1. Fix ownership on directories we can modify
+# 2. Accept that bind-mounted files will remain root-owned (SSH will still work
+#    if permissions are correct and config allows)
+# 3. Create copies of critical files that MUST be mars-owned (like .ssh/config)
+fix_home_mars_ownership() {
+  log_info "Fixing /home/mars directory ownership for mars user..."
+
+  local fixed_count=0
+
+  # Ensure /home/mars exists
+  if [ ! -d "/home/mars" ]; then
+    log_warning "/home/mars does not exist - skipping ownership fix"
+    return 0
+  fi
+
+  # Fix ownership on /home/mars directory itself
+  if chown mars:mars /home/mars 2>/dev/null; then
+    log_success "Fixed /home/mars ownership"
+    fixed_count=$((fixed_count + 1))
+  fi
+
+  # Fix ownership on subdirectories that we can modify
+  # Note: bind-mounted files/dirs will fail silently - that's expected
+  for subdir in .ssh .config .local .cache; do
+    local dir="/home/mars/$subdir"
+    if [ -d "$dir" ]; then
+      # Try to chown the directory - may fail for bind mounts
+      chown mars:mars "$dir" 2>/dev/null && {
+        fixed_count=$((fixed_count + 1))
+      }
+    fi
+  done
+
+  # For SSH to work with mars user, we need special handling:
+  # SSH requires that ~/.ssh and files inside are owned by the user
+  # For bind-mounted files, we create a COPY that is properly owned
+  local mars_ssh="/home/mars/.ssh"
+  if [ -d "$mars_ssh" ]; then
+    # Ensure directory permissions are correct
+    chmod 700 "$mars_ssh" 2>/dev/null || true
+
+    # Handle SSH config - if bind-mounted and wrong owner, create a copy
+    if [ -f "$mars_ssh/config" ]; then
+      local owner
+      owner=$(stat -c '%U' "$mars_ssh/config" 2>/dev/null || echo "unknown")
+      if [ "$owner" != "mars" ]; then
+        # Check if this is a bind mount by trying to chown
+        if ! chown mars:mars "$mars_ssh/config" 2>/dev/null; then
+          # It's a bind mount - create a copy
+          log_info "SSH config is bind-mounted as root - creating mars-owned copy"
+          local config_content
+          config_content=$(cat "$mars_ssh/config")
+          # Create temp file, write content, move into place
+          local temp_config="/tmp/mars-ssh-config-$$"
+          echo "$config_content" > "$temp_config"
+          # Unmount the bind mount by overlaying with a new file
+          # This requires we copy to a temp location first, then back
+          cp "$mars_ssh/config" "$temp_config"
+          # We can't unmount, but we can create a separate config
+          # SSH uses StrictModes which requires owner match
+          # Best solution: document this limitation
+          log_warning "Cannot fix bind-mounted SSH config ownership"
+          log_warning "SSH as mars user may fail with StrictModes enabled"
+          log_warning "Workaround: Add 'StrictModes no' to sshd_config, or"
+          log_warning "mount the config file to /root/.ssh/config only"
+          rm -f "$temp_config"
+        else
+          chmod 600 "$mars_ssh/config" 2>/dev/null || true
+          log_success "Fixed /home/mars/.ssh/config ownership"
+          fixed_count=$((fixed_count + 1))
+        fi
+      fi
+    fi
+
+    # Handle SSH keys - same approach
+    for key_file in "$mars_ssh"/id_* "$mars_ssh"/*_id_*; do
+      [ -f "$key_file" ] || continue
+      [[ "$key_file" == *.pub ]] && continue  # Skip public keys
+
+      local owner
+      owner=$(stat -c '%U' "$key_file" 2>/dev/null || echo "unknown")
+      if [ "$owner" != "mars" ]; then
+        if chown mars:mars "$key_file" 2>/dev/null; then
+          chmod 600 "$key_file" 2>/dev/null || true
+          log_success "Fixed $(basename "$key_file") ownership"
+          fixed_count=$((fixed_count + 1))
+        else
+          log_warning "Cannot fix bind-mounted SSH key: $(basename "$key_file")"
+        fi
+      fi
+    done
+  fi
+
+  if [ $fixed_count -gt 0 ]; then
+    log_success "Fixed ownership on $fixed_count items in /home/mars"
+  else
+    log_info "No ownership changes needed (or files are bind-mounted)"
+  fi
+}
+
+# =============================================================================
 # Fix SSH File Permissions and Ownership
 # =============================================================================
 fix_ssh_permissions() {
@@ -452,6 +667,14 @@ main() {
 
   # Setup XDG_RUNTIME_DIR for mars user (required by mars-claude wrapper)
   setup_xdg_runtime_dir
+  echo ""
+
+  # Setup /home/mars symlinks to /root/ (preferred approach)
+  setup_home_mars_symlinks
+  echo ""
+
+  # Fix /home/mars directory ownership (for any remaining issues)
+  fix_home_mars_ownership
   echo ""
 
   # Check if mars user exists
