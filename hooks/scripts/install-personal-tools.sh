@@ -26,7 +26,7 @@ install_personal_tools() {
   echo '------------------------------'
 
   # System utilities
-  cond_apt_install locales curl htop coreutils software-properties-common tree zsh wget
+  cond_apt_install locales curl htop coreutils software-properties-common tree zsh wget xdg-utils
   locale-gen en_US.UTF-8 && update-locale LANG=en_US.UTF-8
 
   # Build essentials
