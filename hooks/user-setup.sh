@@ -537,11 +537,14 @@ main() {
       echo ""
 
       # Configure IceWM (applies plugin customization if available, otherwise defaults)
-      # Script is in /usr/local/bin (installed by Dockerfile)
-      if command -v configure-icewm.sh >/dev/null 2>&1; then
+      # Script is in hooks/config/icewm/ directory
+      local icewm_config_script="${SCRIPT_DIR}/config/icewm/configure-icewm.sh"
+      if [ -x "${icewm_config_script}" ]; then
         log_info "Configuring IceWM with plugin customization..."
-        configure-icewm.sh || log_warning "IceWM configuration failed (non-critical)"
+        "${icewm_config_script}" || log_warning "IceWM configuration failed (non-critical)"
         echo ""
+      else
+        log_warning "IceWM configuration script not found: ${icewm_config_script}"
       fi
     fi
 
