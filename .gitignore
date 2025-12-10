@@ -30,8 +30,9 @@ hooks/credential-scripts/
 # Generated and runtime files
 generated/
 
-# User-specific config (may contain secrets)
-hooks/config/
+# User-specific config that may contain secrets
+# NOTE: hooks/config/icewm/ is explicitly tracked (no secrets)
+# Add specific paths here if future config dirs contain secrets
 
 # Python cache
 __pycache__/
