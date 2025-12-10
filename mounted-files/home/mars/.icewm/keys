@@ -1,14 +1,14 @@
-# Switch to specific workspace
-key "Alt+1" workspace 0
-key "Alt+2" workspace 1
-key "Alt+3" workspace 2
-key "Alt+4" workspace 3
+# IceWM Keybindings - External Program Launchers
+# NOTE: Workspace keybindings are in the 'preferences' file
+#
+# Format: key "Modifier+Key" command
+# See: /usr/share/icewm/keys for examples
 
-# Move between workspaces
-key "Alt+Left" prevworkspace
-key "Alt+Right" nextworkspace
+# Launch terminal
+key "Alt+Ctrl+t" x-terminal-emulator
 
-# Move window to different workspace
-key "Alt+Shift+1" movetoworkspace 0
-key "Alt+Shift+Left" windowtoprev
-key "Alt+Shift+Right" windowtonext
+# Launch file manager
+key "Alt+Ctrl+f" pcmanfm
+
+# Launch browser
+key "Alt+Ctrl+b" firefox

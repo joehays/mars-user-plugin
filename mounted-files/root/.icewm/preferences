@@ -1,0 +1,37 @@
+# IceWM Preferences - User customizations
+# See /usr/share/icewm/preferences for all options
+
+# ============================================================================
+# WORKSPACES
+# ============================================================================
+# Define 4 workspaces
+WorkspaceNames=" 1 ", " 2 ", " 3 ", " 4 "
+
+# ============================================================================
+# WORKSPACE KEYBINDINGS
+# ============================================================================
+# Switch to specific workspace (Alt+1 through Alt+4)
+KeySysWorkspace1="Alt+1"
+KeySysWorkspace2="Alt+2"
+KeySysWorkspace3="Alt+3"
+KeySysWorkspace4="Alt+4"
+
+# Move between workspaces (Alt+Left/Right)
+KeySysWorkspacePrev="Alt+Left"
+KeySysWorkspaceNext="Alt+Right"
+
+# Move window to different workspace (Alt+Shift+1 through Alt+Shift+4)
+KeySysWorkspace1TakeWin="Alt+Shift+1"
+KeySysWorkspace2TakeWin="Alt+Shift+2"
+KeySysWorkspace3TakeWin="Alt+Shift+3"
+KeySysWorkspace4TakeWin="Alt+Shift+4"
+
+# Move window to prev/next workspace (Alt+Shift+Left/Right)
+KeySysWorkspacePrevTakeWin="Alt+Shift+Left"
+KeySysWorkspaceNextTakeWin="Alt+Shift+Right"
+
+# ============================================================================
+# TASKBAR
+# ============================================================================
+# Show workspaces in taskbar
+TaskBarShowWorkspaces=1
