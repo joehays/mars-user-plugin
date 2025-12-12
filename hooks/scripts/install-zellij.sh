@@ -36,7 +36,7 @@ install_zellij() {
 
   # Download latest Zellij release
   log_info "Downloading Zellij..."
-  local ZELLIJ_VERSION="0.40.1"
+  local ZELLIJ_VERSION="0.43.1"
   local ZELLIJ_TAR="zellij-x86_64-unknown-linux-musl.tar.gz"
   local ZELLIJ_URL="https://github.com/zellij-org/zellij/releases/download/v${ZELLIJ_VERSION}/${ZELLIJ_TAR}"
 
