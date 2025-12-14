@@ -74,4 +74,9 @@ services:
       - ${HOME}/.common_shrc:/root/.common_shrc:rw
       # REMOVED: /home/mars/ mounts - now symlinked at startup
 
+      # ==================================================================
+      # Neovim configuration
+      # ==================================================================
+      - ${HOME}/.config/nvim:/root/.config/nvim:rw
+
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
