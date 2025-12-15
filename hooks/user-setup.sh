@@ -164,7 +164,7 @@ else
   INSTALL_BATS=true          # Bats - Bash Automated Testing System
   INSTALL_ZELLIJ=true        # Zellij terminal multiplexer
   INSTALL_FIREFOX=true       # Firefox ESR web browser
-  INSTALL_ZOTERO=true        # Zotero desktop reference manager
+  INSTALL_ZOTERO=false       # Zotero desktop - DISABLED: Now installed by E6/E30 Dockerfiles with version pinning
   INSTALL_CLIPBOARD_TOOLS=true # Clipboard tools (autocutsel, xclip, xsel)
 
   # Low-priority tools (Image display)

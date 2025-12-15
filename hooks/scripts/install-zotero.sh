@@ -4,9 +4,25 @@
 # Install Zotero Desktop - Reference management software
 # https://www.zotero.org/
 #
+# NOTE: This script is DISABLED by default in user-setup.sh
+# Zotero is now installed by E6/E30 Dockerfiles with version pinning.
+# This script is kept for standalone/manual use with matching version pin.
+#
+# VERSION PINNING: We pin to match E6/E30 Dockerfiles because MARS docs
+# describe JAR modifications (omni.ja) for self-hosted server connection.
+# These modifications may not be compatible with future versions.
+# See:
+#   - core/docs/USE_CASE_HOW_TO_GUIDE.md (UC1 Desktop Client Setup)
+#   - modules/services/lit-manager/docs/setup/DESKTOP_CLIENT_SETUP.md
+#
 # Requirements: wget (auto-installed if missing)
 # =============================================================================
 set -euo pipefail
+
+# VERSION PIN - Keep in sync with:
+#   - mars-dev/dev-environment/Dockerfile (E6)
+#   - core/runtime-environment/Dockerfile (E30)
+ZOTERO_VERSION="7.0.9"
 
 # Source utilities
 _LOCAL_SCRIPT_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
@@ -19,16 +35,19 @@ detect_environment
 # Installation Function
 # =============================================================================
 install_zotero() {
-  log_info "Installing Zotero Desktop..."
+  log_info "Installing Zotero Desktop v${ZOTERO_VERSION} (version-pinned)..."
 
-  # Check if already installed
-  if [ -d "/opt/zotero" ] && [ -x "/opt/zotero/zotero" ]; then
-    log_info "Zotero is already installed at /opt/zotero"
+  # Check if already installed via apt
+  if command -v zotero &>/dev/null; then
+    local installed_version
+    installed_version=$(zotero --version 2>/dev/null | head -1 || echo "unknown")
+    log_info "Zotero is already installed: ${installed_version}"
     return 0
   fi
 
-  if command -v zotero &>/dev/null; then
-    log_info "Zotero is already available on PATH"
+  # Check if already installed at /opt/zotero
+  if [ -d "/opt/zotero" ] && [ -x "/opt/zotero/zotero" ]; then
+    log_info "Zotero is already installed at /opt/zotero"
     return 0
   fi
 
@@ -38,54 +57,24 @@ install_zotero() {
     return 1
   }
 
-  # Download Zotero tarball
-  log_info "Downloading Zotero..."
-  local ZOTERO_URL="https://www.zotero.org/download/client/dl?channel=release&platform=linux-x86_64"
-  local ZOTERO_TAR="/tmp/zotero.tar.bz2"
+  # Install via zotero-deb repository (matches E6/E30 Dockerfiles)
+  log_info "Adding zotero-deb repository..."
+  wget -qO- https://raw.githubusercontent.com/retorquere/zotero-deb/master/install.sh | bash
 
-  wget -q "${ZOTERO_URL}" -O "${ZOTERO_TAR}"
+  log_info "Installing Zotero v${ZOTERO_VERSION} via apt..."
+  apt-get update
+  apt-get install -y "zotero=${ZOTERO_VERSION}"
 
-  # Extract to /opt
-  log_info "Extracting Zotero to /opt..."
-  cd /opt
-  tar -xjf "${ZOTERO_TAR}"
-
-  # The extracted directory is usually named Zotero_linux-x86_64
-  # Rename to /opt/zotero for consistency
-  if [ -d "/opt/Zotero_linux-x86_64" ]; then
-    mv /opt/Zotero_linux-x86_64 /opt/zotero
-  fi
-
-  # Cleanup download
-  rm -f "${ZOTERO_TAR}"
-
-  # Create symlink in /usr/local/bin
-  if [ -x "/opt/zotero/zotero" ]; then
-    register_bin "/opt/zotero/zotero"
-  fi
-
-  # Create desktop entry (for GUI launchers)
-  if [ -d "/usr/share/applications" ]; then
-    log_info "Creating desktop entry..."
-    cat > /usr/share/applications/zotero.desktop << 'EOF'
-[Desktop Entry]
-Name=Zotero
-Comment=Reference Management
-Exec=/opt/zotero/zotero %U
-Icon=/opt/zotero/chrome/icons/default/default256.png
-Type=Application
-Terminal=false
-Categories=Office;Education;Science;
-MimeType=text/plain;x-scheme-handler/zotero;
-StartupNotify=true
-EOF
-  fi
+  # Hold package to prevent automatic upgrades
+  apt-mark hold zotero
+  log_info "Zotero package held to prevent automatic upgrades"
 
   # Verify installation
-  if [ -x "/opt/zotero/zotero" ]; then
-    log_success "Zotero installed successfully at /opt/zotero"
+  if command -v zotero &>/dev/null; then
+    log_success "Zotero v${ZOTERO_VERSION} installed successfully"
     log_info "Start with: zotero"
     log_info "Note: Requires X11 display (VNC or X forwarding)"
+    log_warning "Version is pinned - JAR modifications may break on version changes"
   else
     log_error "Zotero installation failed"
     return 1
