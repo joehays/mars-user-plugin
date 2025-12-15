@@ -173,47 +173,6 @@ setup_credentials_group() {
 }
 
 # =============================================================================
-# Setup MARS Credentials Directory Symlink for Root User
-# =============================================================================
-# Credentials are mounted to /home/mars/.mars/credentials/ (via external-mounts.yml)
-# This allows mars user direct access without /root permission issues.
-# Root user gets access via symlink: /root/.mars -> /home/mars/.mars
-setup_mars_credentials_symlink() {
-  log_info "Setting up MARS credentials symlink for root user..."
-
-  local mars_user_mars_dir="/home/mars/.mars"
-  local root_mars_dir="/root/.mars"
-
-  # Check if mars user credentials directory exists (bind mount target)
-  if [ ! -d "$mars_user_mars_dir" ]; then
-    log_info "$mars_user_mars_dir does not exist - skipping credentials symlink"
-    return 0
-  fi
-
-  # Check if symlink already exists and is correct
-  if [ -L "$root_mars_dir" ] && [ "$(readlink "$root_mars_dir")" = "$mars_user_mars_dir" ]; then
-    log_info "MARS credentials symlink already correct: $root_mars_dir -> $mars_user_mars_dir"
-    return 0
-  fi
-
-  # Remove existing file/symlink/directory if it exists
-  if [ -e "$root_mars_dir" ] || [ -L "$root_mars_dir" ]; then
-    rm -rf "$root_mars_dir"
-  fi
-
-  # Create symlink from /root/.mars -> /home/mars/.mars
-  ln -s "$mars_user_mars_dir" "$root_mars_dir"
-
-  log_success "Created MARS credentials symlink: $root_mars_dir -> $mars_user_mars_dir"
-
-  # Verify credentials are accessible
-  if [ -d "$mars_user_mars_dir/credentials" ]; then
-    log_info "Credentials directory contents:"
-    ls -la "$mars_user_mars_dir/credentials/" 2>/dev/null | head -10 || true
-  fi
-}
-
-# =============================================================================
 # /root/dev Permissions Fix (Issue #3)
 # =============================================================================
 # Fix permissions on /root/dev directory for multi-user access
@@ -787,11 +746,6 @@ main() {
 
   # Setup credentials group first (needed for file access)
   setup_credentials_group
-  echo ""
-
-  # Setup MARS credentials symlink for mars user
-  # Credentials are mounted to /root/.mars/credentials, this creates symlink for mars user
-  setup_mars_credentials_symlink
   echo ""
 
   # Fix /root/dev permissions (Issue #3)

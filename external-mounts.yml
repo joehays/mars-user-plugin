@@ -43,8 +43,7 @@ services:
       # MARS Credentials (CAPRA/AskSage for CCC and LiteLLM)
       # ==================================================================
       # Mount to /home/mars/.mars/credentials/ (accessible to mars user directly)
-      # Root gets access via symlink: /root/.mars -> /home/mars/.mars
-      # This avoids /root mode 700 permission issues for mars user access
+      # Root user should use /home/mars/.mars/credentials/ path directly
       #
       # Required files:
       # - capra_access_token: Cached JWT token (rw for refresh)
