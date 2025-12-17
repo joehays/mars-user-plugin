@@ -43,6 +43,15 @@ install_icewm() {
     fi
   fi
 
+  # Create symlink for TurboVNC compatibility
+  # TurboVNC's -wm flag strips "-session" suffix, so "icewm-session" looks for "icewm.desktop"
+  # but the package installs "icewm-session.desktop". Create symlink to fix this.
+  if [ -f /usr/share/xsessions/icewm-session.desktop ] && [ ! -e /usr/share/xsessions/icewm.desktop ]; then
+    log_info "Creating icewm.desktop symlink for TurboVNC compatibility..."
+    ln -sf /usr/share/xsessions/icewm-session.desktop /usr/share/xsessions/icewm.desktop
+    log_success "Created /usr/share/xsessions/icewm.desktop symlink"
+  fi
+
   log_success "IceWM installed successfully"
   log_info "IceWM is a lightweight window manager (~10MB vs ~2-3GB for GNOME)"
   log_info "Reboot to start the desktop environment"
