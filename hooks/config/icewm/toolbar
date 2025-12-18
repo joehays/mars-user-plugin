@@ -3,7 +3,8 @@
 # Format: prog "Name" icon command
 
 # GitLab - MARS GitLab CE Instance
-prog "GitLab" /usr/share/pixmaps/gitlab.png firefox http://mars-gitlab-ce:9080
+# Use internal port 80 (not host port 9080) since E30 and GitLab share mars_network
+prog "GitLab" /usr/share/pixmaps/gitlab.png firefox http://mars-gitlab-ce
 
 # Zotero - Reference Management
 prog "Zotero" /usr/share/pixmaps/zotero.png zotero
