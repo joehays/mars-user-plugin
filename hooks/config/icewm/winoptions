@@ -1,0 +1,26 @@
+# IceWM Window Options
+# Configure per-application window behavior
+# Format: window_class.window_name.option: value
+#
+# Common options:
+#   allWorkspaces: 0 = show on current workspace only, 1 = show on all workspaces (sticky)
+#   workspace: N = always open on workspace N
+#   layer: Desktop, Below, Normal, OnTop, Dock, AboveDock, Menu (stacking order)
+#   geometry: WxH+X+Y = initial window size and position
+#   tray: Ignore, Minimized, Exclusive (system tray behavior)
+#
+# Find window class with: xprop WM_CLASS (then click on window)
+
+# Firefox - show only on assigned workspace (not sticky)
+firefox.allWorkspaces: 0
+Firefox.allWorkspaces: 0
+Navigator.allWorkspaces: 0
+
+# Terminals - also workspace-specific
+xterm.allWorkspaces: 0
+XTerm.allWorkspaces: 0
+wezterm.allWorkspaces: 0
+org.wezfurlong.wezterm.allWorkspaces: 0
+
+# File dialogs - follow parent window behavior
+Gtk.allWorkspaces: 0

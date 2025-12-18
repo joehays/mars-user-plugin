@@ -173,6 +173,18 @@ EOF
     CUSTOM_TOOLBAR_FOUND=true
   fi
 
+  # =============================================================================
+  # Window Options Configuration
+  # =============================================================================
+  # Check if plugin provides custom winoptions (per-application window behavior)
+  CUSTOM_WINOPTS_FOUND=false
+  if [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/winoptions" ]; then
+    cp "${PLUGIN_CONFIG_DIR}/winoptions" /root/.icewm/winoptions
+    chmod 644 /root/.icewm/winoptions
+    log_success "Installed custom IceWM window options"
+    CUSTOM_WINOPTS_FOUND=true
+  fi
+
   log_success "IceWM configuration complete"
 
   # Summary
@@ -182,6 +194,7 @@ EOF
   echo "  Preferences: $([ "${CUSTOM_PREFS_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (MARS)")"
   echo "  Startup: $([ "${CUSTOM_STARTUP_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (none)")"
   echo "  Toolbar: $([ "${CUSTOM_TOOLBAR_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (none)")"
+  echo "  WinOptions: $([ "${CUSTOM_WINOPTS_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (none)")"
   echo ""
 }
 
