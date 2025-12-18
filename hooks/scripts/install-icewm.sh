@@ -39,6 +39,15 @@ install_icewm() {
     fi
   fi
 
+  # Create symlink for TurboVNC compatibility
+  # TurboVNC's xstartup.turbovnc looks for /usr/share/xsessions/icewm.desktop
+  # but Ubuntu 22.04's icewm package installs icewm-session.desktop
+  if [ -f /usr/share/xsessions/icewm-session.desktop ] && [ ! -e /usr/share/xsessions/icewm.desktop ]; then
+    log_info "Creating icewm.desktop symlink for TurboVNC compatibility..."
+    ln -sf icewm-session.desktop /usr/share/xsessions/icewm.desktop
+    log_success "Created symlink: icewm.desktop -> icewm-session.desktop"
+  fi
+
   log_success "IceWM installed successfully"
   log_info "IceWM is a lightweight window manager (~10MB vs ~2-3GB for GNOME)"
   log_info "Configuration files:"
