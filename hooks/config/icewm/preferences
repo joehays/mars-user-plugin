@@ -68,3 +68,18 @@ Theme="default/default.theme"
 
 # Show menu icons
 ShowMenuButtonIcon=1
+
+# =============================================================================
+# Workspace Keybindings
+# =============================================================================
+# Switch to workspace (Ctrl+Alt+number)
+KeySysWorkspace1="Ctrl+Alt+1"
+KeySysWorkspace2="Ctrl+Alt+2"
+KeySysWorkspace3="Ctrl+Alt+3"
+KeySysWorkspace4="Ctrl+Alt+4"
+
+# Move window to workspace (Ctrl+Alt+Shift+number)
+KeySysWorkspace1TakeWin="Ctrl+Alt+Shift+1"
+KeySysWorkspace2TakeWin="Ctrl+Alt+Shift+2"
+KeySysWorkspace3TakeWin="Ctrl+Alt+Shift+3"
+KeySysWorkspace4TakeWin="Ctrl+Alt+Shift+4"
