@@ -222,7 +222,11 @@ generate_auto_mounts() {
 
     # PHASE 1: Mount DIRECTORIES that contain files
     # This ensures file edits propagate (directory inodes don't change when files inside are edited)
-    # We mount directories at depth 2+ (e.g., root/.icewm/ but not root/)
+    #
+    # Strategy:
+    # - "root/" and "home/*" are safe to mount entirely (user home directories)
+    # - "usr/" should NOT be mounted entirely (would overlay system files)
+    # - For other paths, mount at depth 2+ (e.g., usr/share/pixmaps/)
     while IFS= read -r -d '' dir; do
         # Skip the base mounted-files directory itself
         if [ "$dir" = "$mounted_files_dir" ]; then
@@ -233,24 +237,34 @@ generate_auto_mounts() {
         local rel_path="${dir#$mounted_files_dir/}"
         local container_path="/$rel_path"
 
-        # Skip top-level directories (e.g., "root", "home", "usr")
-        # We want to mount subdirectories like "root/.icewm" not "root"
-        local depth=$(echo "$rel_path" | tr -cd '/' | wc -c)
-        if [ "$depth" -lt 1 ]; then
-            continue
+        # Determine if this directory should be mounted
+        local should_mount=false
+
+        # Special case: "root" directory - mount entirely (user's home)
+        if [ "$rel_path" = "root" ]; then
+            should_mount=true
+        # Special case: "home/*" directories - mount user homes entirely
+        elif [[ "$rel_path" =~ ^home/[^/]+$ ]]; then
+            should_mount=true
+        else
+            # For other paths (like usr/), only mount at depth 2+
+            local depth=$(echo "$rel_path" | tr -cd '/' | wc -c)
+            if [ "$depth" -ge 2 ]; then
+                # Check if directory has any regular files (not just subdirectories)
+                local file_count=$(find "$dir" -maxdepth 1 -type f ! -name ".gitkeep" 2>/dev/null | wc -l)
+                if [ "$file_count" -gt 0 ]; then
+                    should_mount=true
+                fi
+            fi
         fi
 
-        # Check if directory has any regular files (not just subdirectories)
-        local file_count=$(find "$dir" -maxdepth 1 -type f ! -name ".gitkeep" 2>/dev/null | wc -l)
-        if [ "$file_count" -eq 0 ]; then
-            continue
+        if [ "$should_mount" = true ]; then
+            # Add directory mount
+            echo "      - $dir:$container_path:rw" >> "$temp_mounts"
+            mounted_paths["$rel_path"]=1
+            mount_count=$((mount_count + 1))
+            log_info "  Directory mount: $container_path"
         fi
-
-        # Add directory mount
-        echo "      - $dir:$container_path:rw" >> "$temp_mounts"
-        mounted_paths["$rel_path"]=1
-        mount_count=$((mount_count + 1))
-        log_info "  Directory mount: $container_path"
     done < <(find "$mounted_files_dir" -type d -print0 2>/dev/null)
 
     # PHASE 2: Mount individual FILES that aren't inside already-mounted directories
