@@ -932,6 +932,30 @@ main() {
   # Fix SSH file permissions for strict SSH policy compliance
   echo ""
   fix_ssh_permissions
+
+  # Configure IceWM (permissions, prefoverride)
+  echo ""
+  configure_icewm
+}
+
+# =============================================================================
+# Configure IceWM Window Manager
+# =============================================================================
+# Sets permissions on bind-mounted IceWM files and creates prefoverride.
+# All IceWM files (config + backgrounds) are in mounted-files/root/.icewm/
+configure_icewm() {
+  local ICEWM_SCRIPT="${SCRIPT_DIR}/config/icewm/configure-icewm.sh"
+
+  if [ -f "${ICEWM_SCRIPT}" ]; then
+    log_info "Running IceWM configuration..."
+    if bash "${ICEWM_SCRIPT}"; then
+      log_success "IceWM configured successfully"
+    else
+      log_warning "IceWM configuration failed (non-fatal)"
+    fi
+  else
+    log_info "No IceWM configuration script found (skipping)"
+  fi
 }
 
 # Run main function
