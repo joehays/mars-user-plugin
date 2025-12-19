@@ -2,6 +2,10 @@
 # Configure per-application window behavior
 # Format: window_class.window_name.option: value
 #
+# NOTE: This is the authoritative source for window options.
+# Edit this file directly - changes persist across container restarts.
+# Location: mounted-files/root/.icewm/winoptions (bind-mounted to /root/.icewm/winoptions)
+#
 # Common options:
 #   allWorkspaces: 0 = show on current workspace only, 1 = show on all workspaces (sticky)
 #   workspace: N = always open on workspace N

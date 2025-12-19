@@ -111,26 +111,34 @@ configure_icewm() {
   fi
 
   # =============================================================================
+  # Bind-Mount Detection
+  # =============================================================================
+  # If files exist in /root/.icewm/ (bind-mounted from mounted-files/), preserve them.
+  # Only copy from plugin hooks/config if bind-mounted file doesn't exist.
+  #
+  # Architecture:
+  #   - mounted-files/root/.icewm/* = authoritative source (bind-mounted, persists)
+  #   - hooks/config/icewm/* = defaults/fallbacks (copied only if bind-mount missing)
+  #
+  # This prevents configure-icewm.sh from overwriting user customizations.
+  # =============================================================================
+
+  # =============================================================================
   # Preferences Configuration
   # =============================================================================
-  CUSTOM_PREFS_FOUND=false
-
-  # Check if plugin provides custom preferences
-  if [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/preferences" ]; then
+  if [ -f "/root/.icewm/preferences" ] && [ -s "/root/.icewm/preferences" ]; then
+    log_info "Preserving existing preferences (bind-mounted)"
     CUSTOM_PREFS_FOUND=true
-    log_info "Found plugin custom preferences"
-  fi
-
-  # Apply preferences
-  if [ "${CUSTOM_PREFS_FOUND}" = true ]; then
-    # Use plugin preferences as base
+    # Also ensure prefoverride exists for theme override
+    if [ ! -f "/root/.icewm/prefoverride" ]; then
+      cp /root/.icewm/preferences /root/.icewm/prefoverride
+      log_success "Created prefoverride from existing preferences"
+    fi
+  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/preferences" ]; then
     cp "${PLUGIN_CONFIG_DIR}/preferences" /root/.icewm/preferences
-    log_success "Installed custom IceWM preferences"
-
-    # Also copy to prefoverride to override theme settings (IceWM 2.9.6+)
-    # Theme defaults can override preferences, so prefoverride ensures our settings win
     cp "${PLUGIN_CONFIG_DIR}/preferences" /root/.icewm/prefoverride
-    log_success "Installed prefoverride to override theme defaults"
+    log_success "Installed IceWM preferences from plugin defaults"
+    CUSTOM_PREFS_FOUND=true
   else
     # Use MARS default preferences
     if [ -f "/usr/local/share/mars-dev/icewm/preferences.default" ]; then
@@ -144,6 +152,7 @@ DesktopBackgroundScaled=1
 ShowTaskBar=1
 EOF
     fi
+    CUSTOM_PREFS_FOUND=false
   fi
 
   chmod 644 /root/.icewm/preferences
@@ -151,11 +160,14 @@ EOF
   # =============================================================================
   # Startup Script Configuration
   # =============================================================================
-  # Check if plugin provides custom startup script
-  if [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/startup" ]; then
+  if [ -f "/root/.icewm/startup" ] && [ -s "/root/.icewm/startup" ]; then
+    log_info "Preserving existing startup script (bind-mounted)"
+    chmod 755 /root/.icewm/startup
+    CUSTOM_STARTUP_FOUND=true
+  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/startup" ]; then
     cp "${PLUGIN_CONFIG_DIR}/startup" /root/.icewm/startup
     chmod 755 /root/.icewm/startup
-    log_success "Installed custom IceWM startup script"
+    log_success "Installed IceWM startup script from plugin defaults"
     CUSTOM_STARTUP_FOUND=true
   else
     CUSTOM_STARTUP_FOUND=false
@@ -164,25 +176,33 @@ EOF
   # =============================================================================
   # Toolbar Configuration
   # =============================================================================
-  # Check if plugin provides custom toolbar (taskbar application launchers)
-  CUSTOM_TOOLBAR_FOUND=false
-  if [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/toolbar" ]; then
+  if [ -f "/root/.icewm/toolbar" ] && [ -s "/root/.icewm/toolbar" ]; then
+    log_info "Preserving existing toolbar (bind-mounted)"
+    chmod 644 /root/.icewm/toolbar
+    CUSTOM_TOOLBAR_FOUND=true
+  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/toolbar" ]; then
     cp "${PLUGIN_CONFIG_DIR}/toolbar" /root/.icewm/toolbar
     chmod 644 /root/.icewm/toolbar
-    log_success "Installed custom IceWM toolbar"
+    log_success "Installed IceWM toolbar from plugin defaults"
     CUSTOM_TOOLBAR_FOUND=true
+  else
+    CUSTOM_TOOLBAR_FOUND=false
   fi
 
   # =============================================================================
   # Window Options Configuration
   # =============================================================================
-  # Check if plugin provides custom winoptions (per-application window behavior)
-  CUSTOM_WINOPTS_FOUND=false
-  if [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/winoptions" ]; then
+  if [ -f "/root/.icewm/winoptions" ] && [ -s "/root/.icewm/winoptions" ]; then
+    log_info "Preserving existing window options (bind-mounted)"
+    chmod 644 /root/.icewm/winoptions
+    CUSTOM_WINOPTS_FOUND=true
+  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/winoptions" ]; then
     cp "${PLUGIN_CONFIG_DIR}/winoptions" /root/.icewm/winoptions
     chmod 644 /root/.icewm/winoptions
-    log_success "Installed custom IceWM window options"
+    log_success "Installed IceWM window options from plugin defaults"
     CUSTOM_WINOPTS_FOUND=true
+  else
+    CUSTOM_WINOPTS_FOUND=false
   fi
 
   log_success "IceWM configuration complete"
@@ -190,11 +210,14 @@ EOF
   # Summary
   echo ""
   echo "IceWM Configuration Summary:"
-  echo "  Background: $([ "${CUSTOM_BG_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (MARS)")"
-  echo "  Preferences: $([ "${CUSTOM_PREFS_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (MARS)")"
-  echo "  Startup: $([ "${CUSTOM_STARTUP_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (none)")"
-  echo "  Toolbar: $([ "${CUSTOM_TOOLBAR_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (none)")"
-  echo "  WinOptions: $([ "${CUSTOM_WINOPTS_FOUND}" = true ] && echo "Custom (plugin)" || echo "Default (none)")"
+  echo "  Background:  $([ "${CUSTOM_BG_FOUND}" = true ] && echo "Custom" || echo "Default (MARS)")"
+  echo "  Preferences: $([ "${CUSTOM_PREFS_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "Default (MARS)")"
+  echo "  Startup:     $([ "${CUSTOM_STARTUP_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "None")"
+  echo "  Toolbar:     $([ "${CUSTOM_TOOLBAR_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "None")"
+  echo "  WinOptions:  $([ "${CUSTOM_WINOPTS_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "None")"
+  echo ""
+  echo "Note: Bind-mounted files (mounted-files/root/.icewm/*) take precedence."
+  echo "      Edit those files directly for persistent customization."
   echo ""
 }
 

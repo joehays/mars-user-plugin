@@ -1,9 +1,41 @@
-# IceWM Toolbar - Quicklaunch buttons
-# Format: prog "Label" /path/to/icon /path/to/executable
-# Icons are stored in /usr/share/pixmaps/ (mounted from plugin)
+# IceWM Toolbar Configuration
+# Custom application launchers displayed on the taskbar
+# Format: prog "Name" icon command
+#
+# NOTE: This is the authoritative source for toolbar config.
+# Edit this file directly - changes persist across container restarts.
+# Location: mounted-files/root/.icewm/toolbar (bind-mounted to /root/.icewm/toolbar)
 
-prog "Firefox" /usr/share/pixmaps/firefox.png firefox
-prog "GitLab" /usr/share/pixmaps/gitlab.png xdg-open http://localhost:8929
-prog "PlantUML" /usr/share/pixmaps/plantuml.png xdg-open http://localhost:8091/plantuml/
+# === Web Services ===
+
+# GitLab - MARS GitLab CE Instance
+# Use internal hostname (E30 and GitLab share mars_network)
+prog "GitLab" /usr/share/pixmaps/gitlab.png firefox http://mars-gitlab-ce
+
+# PlantUML - UML Diagram Server
+prog "PlantUML" /usr/share/pixmaps/plantuml.png firefox http://localhost:8091/plantuml/
+
+# Neo4j Browser - Graph Database
+prog "Neo4j" /usr/share/pixmaps/neo4j.png firefox http://localhost:7474
+
+# === Applications ===
+
+# Zotero - Reference Management
 prog "Zotero" /usr/share/pixmaps/zotero.png zotero
+
+# Firefox - Web Browser
+prog "Firefox" /usr/share/pixmaps/firefox.png firefox
+
+# === Terminals ===
+
+# XTerm - Terminal
+prog "Terminal" /usr/share/pixmaps/xterm-color_48x48.xpm xterm
+
+# WezTerm - GPU-accelerated Terminal
 prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm
+
+# === IDE (uncomment if installed) ===
+# prog "VSCode" /usr/share/pixmaps/code.png code
+
+# === File Manager (uncomment if installed) ===
+# prog "Files" /usr/share/pixmaps/folder.png nautilus

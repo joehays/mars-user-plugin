@@ -1,37 +1,85 @@
-# IceWM Preferences - User customizations
-# See /usr/share/icewm/preferences for all options
+# =============================================================================
+# IceWM Preferences - Custom User Configuration
+# =============================================================================
+# This file overrides the default MARS IceWM preferences
+# Location: external/mars-user-plugin/hooks/config/icewm/preferences
 
-# ============================================================================
-# WORKSPACES
-# ============================================================================
-# Define 4 workspaces
-WorkspaceNames=" 1 ", " 2 ", " 3 ", " 4 "
+# =============================================================================
+# Desktop Background
+# =============================================================================
+# Background images per workspace (comma-separated, one per workspace)
+# Workspace 1: mars-logo-1_prime (original beige)
+# Workspace 2: mars-logo-2_prime (variant 2)
+# Workspace 3: mars-logo-3_prime (variant 3)
+# Workspace 4: mars-logo-4_prime (variant 4)
+# IceWM will automatically switch backgrounds when you change workspaces
+DesktopBackgroundImage=/root/.icewm/backgrounds/workspace1.png,/root/.icewm/backgrounds/workspace2.png,/root/.icewm/backgrounds/workspace3.png,/root/.icewm/backgrounds/workspace4.png
 
-# ============================================================================
-# WORKSPACE KEYBINDINGS
-# ============================================================================
-# Switch to specific workspace (Alt+1 through Alt+4)
-KeySysWorkspace1="Alt+1"
-KeySysWorkspace2="Alt+2"
-KeySysWorkspace3="Alt+3"
-KeySysWorkspace4="Alt+4"
+# Background scaling mode
+# 0 = Centered (no scaling) - shows image at native size
+# 1 = Scaled to fit (maintains aspect ratio) - fills screen
+# 2 = Tiled (repeating pattern)
+# For 950x950 image on 1920x1080 display: use centered (0) for ~88% of screen height
+DesktopBackgroundScaled=0
+DesktopBackgroundCenter=1
 
-# Move between workspaces (Alt+Left/Right)
-KeySysWorkspacePrev="Alt+Left"
-KeySysWorkspaceNext="Alt+Right"
+# Fallback background colors per workspace (comma-separated, one per workspace)
+# Workspace 1: Dark purple/blue (original)
+# Workspace 2: Dark teal
+# Workspace 3: Dark burgundy/red
+# Workspace 4: Dark forest green
+DesktopBackgroundColor="rgb:1a/1a/2e,rgb:1a/2e/2e,rgb:2e/1a/1a,rgb:1a/2e/1a"
 
-# Move window to different workspace (Alt+Shift+1 through Alt+Shift+4)
-KeySysWorkspace1TakeWin="Alt+Shift+1"
-KeySysWorkspace2TakeWin="Alt+Shift+2"
-KeySysWorkspace3TakeWin="Alt+Shift+3"
-KeySysWorkspace4TakeWin="Alt+Shift+4"
+# Desktop transparency (0=opaque, 255=fully transparent)
+DesktopTransparency=0
 
-# Move window to prev/next workspace (Alt+Shift+Left/Right)
-KeySysWorkspacePrevTakeWin="Alt+Shift+Left"
-KeySysWorkspaceNextTakeWin="Alt+Shift+Right"
+# =============================================================================
+# Taskbar Settings
+# =============================================================================
+# Show taskbar
+ShowTaskBar=1
 
-# ============================================================================
-# TASKBAR
-# ============================================================================
-# Show workspaces in taskbar
-TaskBarShowWorkspaces=1
+# Auto-hide taskbar (0=disabled, 1=enabled)
+TaskBarAutoHide=0
+
+# Show workspace buttons on taskbar
+WorkspaceShowNames=1
+
+# Taskbar height (pixels, 0=auto)
+TaskBarHeight=28
+
+# =============================================================================
+# Window Manager Behavior
+# =============================================================================
+# Focus follows mouse (0=click to focus, 1=focus follows mouse)
+FocusMode=1
+
+# Click to raise windows
+ClickToRaise=1
+
+# Delay before raising window (milliseconds)
+RaiseDelay=200
+
+# =============================================================================
+# Themes and Appearance
+# =============================================================================
+# Theme name (from /usr/share/icewm/themes/)
+Theme="default/default.theme"
+
+# Show menu icons
+ShowMenuButtonIcon=1
+
+# =============================================================================
+# Workspace Keybindings
+# =============================================================================
+# Switch to workspace (Ctrl+Alt+number)
+KeySysWorkspace1="Ctrl+Alt+1"
+KeySysWorkspace2="Ctrl+Alt+2"
+KeySysWorkspace3="Ctrl+Alt+3"
+KeySysWorkspace4="Ctrl+Alt+4"
+
+# Move window to workspace (Ctrl+Alt+Shift+number)
+KeySysWorkspace1TakeWin="Ctrl+Alt+Shift+1"
+KeySysWorkspace2TakeWin="Ctrl+Alt+Shift+2"
+KeySysWorkspace3TakeWin="Ctrl+Alt+Shift+3"
+KeySysWorkspace4TakeWin="Ctrl+Alt+Shift+4"
