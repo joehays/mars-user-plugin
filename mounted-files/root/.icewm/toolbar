@@ -29,7 +29,7 @@ prog "Firefox" /usr/share/pixmaps/firefox.png firefox
 # === Terminals ===
 
 # XTerm - Terminal
-prog "Terminal" /usr/share/pixmaps/xterm-color_48x48.xpm xterm
+prog "Terminal" /usr/share/pixmaps/terminal.png xterm
 
 # WezTerm - GPU-accelerated Terminal
 prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm
