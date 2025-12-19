@@ -1,38 +1,41 @@
 # IceWM Configuration for mars-user-plugin
 
-This directory contains **fallback configuration** for the IceWM window manager.
+IceWM configuration is managed through **bind-mounted files only**. No fallbacks.
 
 ## Architecture
 
-**Primary configuration** lives in `mounted-files/root/.icewm/` (bind-mounted into container):
-- `toolbar` - Taskbar application launchers
-- `preferences` - IceWM behavior settings
-- `winoptions` - Per-application window behavior
-- `startup` - Commands to run when IceWM starts
-- `keys` - Keyboard shortcuts
+**All configuration** lives in `mounted-files/root/.icewm/` (bind-mounted into container):
 
-**This directory** (`hooks/config/icewm/`) contains:
-- `configure-icewm.sh` - Configuration script (runs on container startup)
-- `backgrounds/` - Desktop background images (fallback)
-- `startup` - Fallback startup script (used only if bind-mount missing)
-- `preferences.example` - Example preferences file for reference
+| File | Purpose | Required? |
+|------|---------|-----------|
+| `toolbar` | Taskbar application launchers | **Yes** |
+| `preferences` | IceWM behavior settings | **Yes** |
+| `startup` | Commands to run on IceWM start | No |
+| `winoptions` | Per-application window behavior | No |
+| `keys` | Keyboard shortcuts | No |
 
-## How It Works
+**This directory** (`hooks/config/icewm/`) contains only:
+- `configure-icewm.sh` - Validates bind-mounts and sets permissions
+- `backgrounds/` - Desktop background images (copied to container)
+- `preferences.example` - Example preferences for reference
 
-1. Container starts with bind mounts from `mounted-files/root/.icewm/` → `/root/.icewm/`
-2. `configure-icewm.sh` runs and checks each config file:
-   - If file exists in `/root/.icewm/` (bind-mounted) → **preserve it**
-   - If file is missing → copy from `hooks/config/icewm/` as fallback
-3. User customizations in `mounted-files/` persist across container restarts
+## Fail-Fast Behavior
+
+If required files (`preferences`, `toolbar`) are missing, `configure-icewm.sh` **fails with an error** and stops container startup. No silent fallbacks.
+
+Error output:
+```
+[icewm-config] ✗ ERROR: MISSING REQUIRED IceWM CONFIG FILES
+[icewm-config] ✗ ERROR: The following bind-mounted files are missing from /root/.icewm/:
+[icewm-config] ✗ ERROR:   - preferences
+[icewm-config] ✗ ERROR:   - toolbar
+```
 
 ## Quick Start
 
-**Edit IceWM toolbar (add/remove application launchers):**
+**Edit IceWM toolbar:**
 ```bash
-# Edit the bind-mounted file directly
 vim mounted-files/root/.icewm/toolbar
-
-# Restart container to apply
 mars up -d
 ```
 
@@ -42,98 +45,30 @@ vim mounted-files/root/.icewm/preferences
 mars up -d
 ```
 
-**Changes take effect immediately** - no rebuild required, just restart the container.
-
-## File Locations
-
-| Purpose | Authoritative Source | Fallback |
-|---------|---------------------|----------|
-| Toolbar | `mounted-files/root/.icewm/toolbar` | `hooks/config/icewm/toolbar` (deleted) |
-| Preferences | `mounted-files/root/.icewm/preferences` | MARS defaults |
-| Window Options | `mounted-files/root/.icewm/winoptions` | None |
-| Startup Script | `mounted-files/root/.icewm/startup` | `hooks/config/icewm/startup` |
-| Keybindings | `mounted-files/root/.icewm/keys` | None |
-| Backgrounds | N/A | `hooks/config/icewm/backgrounds/` |
-
 ## Custom Desktop Background
 
 Place background images in `hooks/config/icewm/backgrounds/`:
 
-**Single background:**
 ```bash
+# Single background
 cp ~/Pictures/wallpaper.png hooks/config/icewm/backgrounds/custom.png
-```
 
-**Per-workspace backgrounds:**
-```bash
+# Per-workspace backgrounds
 cp workspace1.png hooks/config/icewm/backgrounds/workspace1.png
-cp workspace2.png hooks/config/icewm/backgrounds/workspace2.png
-# etc.
 ```
 
-Supported formats: PNG, JPG, JPEG, SVG
+Backgrounds are the only files that come from this directory (binary files shouldn't be in mounted-files/).
 
 ## Toolbar Format
 
-The toolbar file uses this format:
-```
-prog "Label" /path/to/icon command
-```
-
-Example:
 ```bash
-# Web browser
-prog "Firefox" /usr/share/pixmaps/firefox.png firefox
-
-# Web service (opens in browser)
+# Format: prog "Label" /path/to/icon command
 prog "GitLab" /usr/share/pixmaps/gitlab.png firefox http://mars-gitlab-ce
-
-# Application
-prog "Zotero" /usr/share/pixmaps/zotero.png zotero
-```
-
-## Preferences Reference
-
-Common preferences (see `preferences.example` for full list):
-
-```bash
-# Taskbar
-TaskBarAtTop=1              # 1=top, 0=bottom
-TaskBarAutoHide=0           # 1=auto-hide
-
-# Focus behavior
-FocusMode=2                 # 0=click, 1=sloppy, 2=explicit
-RaiseOnFocus=1              # Raise window when focused
-
-# Workspaces
-WorkspaceNames=" Dev "," Test "," Docs "," Misc "
-```
-
-Full documentation: https://ice-wm.org/man/icewm-preferences
-
-## Troubleshooting
-
-**Toolbar entries not showing:**
-```bash
-# Check file syntax
-cat /root/.icewm/toolbar
-
-# Restart IceWM
-icewm --restart
-```
-
-**Changes not persisting:**
-- Ensure you're editing `mounted-files/root/.icewm/*` (not `hooks/config/icewm/*`)
-- The hooks/config files are fallbacks, not the primary source
-
-**Find window class for winoptions:**
-```bash
-xprop WM_CLASS
-# Then click on the window
+prog "PlantUML" /usr/share/pixmaps/plantuml.png firefox http://localhost:8091/plantuml/
+prog "Neo4j" /usr/share/pixmaps/neo4j.png firefox http://localhost:7474
 ```
 
 ## Related Documentation
 
-- **IceWM Official Docs:** https://ice-wm.org/
-- **IceWM Preferences:** https://ice-wm.org/man/icewm-preferences
-- **Plugin auto-mount system:** See main plugin README.md
+- **IceWM Official Docs**: https://ice-wm.org/
+- **IceWM Preferences**: https://ice-wm.org/man/icewm-preferences

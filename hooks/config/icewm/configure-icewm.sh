@@ -1,19 +1,22 @@
 #!/bin/bash
 # =============================================================================
 # configure-icewm.sh
-# Configure IceWM with optional plugin customization
+# Configure IceWM window manager from bind-mounted files
 #
-# Execution contexts:
-#   1. Dockerfile RUN (build-time, no plugin): Use defaults
-#   2. Plugin hook (build-time, with plugin): Use custom + fallback to defaults
-#   3. Runtime (container startup): Re-apply configuration
+# Architecture:
+#   - mounted-files/root/.icewm/* = AUTHORITATIVE source (bind-mounted)
+#   - NO FALLBACKS - if bind-mounted files are missing, this script FAILS
 #
-# Search paths for plugin customization (checked in order):
-#   - ${MARS_PLUGIN_ROOT}/hooks/config/icewm/  (plugin mode)
-#   - /workspace/mars-v2/external/mars-user-plugin/hooks/config/icewm/ (runtime)
+# Required bind-mounted files:
+#   - preferences (IceWM behavior settings)
+#   - toolbar (taskbar application launchers)
 #
-# Default fallback:
-#   - /usr/local/share/mars-dev/icewm/
+# Optional bind-mounted files:
+#   - startup (commands to run on IceWM start)
+#   - winoptions (per-application window behavior)
+#   - keys (keyboard shortcuts)
+#
+# Backgrounds are handled separately from hooks/config/icewm/backgrounds/
 # =============================================================================
 set -euo pipefail
 
@@ -37,37 +40,113 @@ configure_icewm() {
     return 0
   fi
 
-  # Create IceWM user config directory
+  # Create IceWM backgrounds directory
   mkdir -p /root/.icewm/backgrounds
 
   # =============================================================================
-  # Determine Plugin Config Path
+  # Validate Required Bind-Mounted Files
   # =============================================================================
-  PLUGIN_CONFIG_DIR=""
+  # These files MUST exist in /root/.icewm/ (bind-mounted from mounted-files/)
+  # If missing, the container should NOT start - fail fast, don't use fallbacks
+  # =============================================================================
 
-  # Priority 1: MARS_PLUGIN_ROOT (build-time plugin execution)
-  if [ -n "${MARS_PLUGIN_ROOT:-}" ]; then
-    PLUGIN_CONFIG_DIR="${MARS_PLUGIN_ROOT}/hooks/config/icewm"
-    log_info "Using plugin config path (build-time): ${PLUGIN_CONFIG_DIR}"
+  MISSING_FILES=()
 
-  # Priority 2: Standard plugin location (runtime or manual execution)
-  elif [ -d "/workspace/mars-v2/external/mars-user-plugin/hooks/config/icewm" ]; then
-    PLUGIN_CONFIG_DIR="/workspace/mars-v2/external/mars-user-plugin/hooks/config/icewm"
-    log_info "Using plugin config path (runtime): ${PLUGIN_CONFIG_DIR}"
+  if [ ! -f "/root/.icewm/preferences" ] || [ ! -s "/root/.icewm/preferences" ]; then
+    MISSING_FILES+=("preferences")
+  fi
 
-  # Priority 3: No plugin available
+  if [ ! -f "/root/.icewm/toolbar" ] || [ ! -s "/root/.icewm/toolbar" ]; then
+    MISSING_FILES+=("toolbar")
+  fi
+
+  if [ ${#MISSING_FILES[@]} -gt 0 ]; then
+    log_error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log_error "MISSING REQUIRED IceWM CONFIG FILES"
+    log_error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    log_error ""
+    log_error "The following bind-mounted files are missing from /root/.icewm/:"
+    for file in "${MISSING_FILES[@]}"; do
+      log_error "  - $file"
+    done
+    log_error ""
+    log_error "These files should be bind-mounted from the mars-user-plugin:"
+    log_error "  mounted-files/root/.icewm/ → /root/.icewm/"
+    log_error ""
+    log_error "To fix:"
+    log_error "  1. Ensure mounted-files/root/.icewm/ contains the required files"
+    log_error "  2. Check that docker-compose.override.yml mounts the plugin correctly"
+    log_error "  3. Verify the auto-mount system generated the volume mounts"
+    log_error ""
+    log_error "Required files: preferences, toolbar"
+    log_error "Optional files: startup, winoptions, keys"
+    log_error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    return 1
+  fi
+
+  # =============================================================================
+  # Process Bind-Mounted Files (no fallbacks)
+  # =============================================================================
+
+  # Preferences (required - already validated)
+  log_info "Using bind-mounted preferences"
+  chmod 644 /root/.icewm/preferences
+  # Create prefoverride to override theme defaults
+  if [ ! -f "/root/.icewm/prefoverride" ]; then
+    cp /root/.icewm/preferences /root/.icewm/prefoverride
+    log_success "Created prefoverride from preferences"
+  fi
+
+  # Toolbar (required - already validated)
+  log_info "Using bind-mounted toolbar"
+  chmod 644 /root/.icewm/toolbar
+
+  # Startup (optional)
+  if [ -f "/root/.icewm/startup" ] && [ -s "/root/.icewm/startup" ]; then
+    log_info "Using bind-mounted startup script"
+    chmod 755 /root/.icewm/startup
+    STARTUP_STATUS="bind-mounted"
   else
-    log_info "No plugin config found, using MARS defaults"
+    STARTUP_STATUS="not configured"
+  fi
+
+  # Window Options (optional)
+  if [ -f "/root/.icewm/winoptions" ] && [ -s "/root/.icewm/winoptions" ]; then
+    log_info "Using bind-mounted window options"
+    chmod 644 /root/.icewm/winoptions
+    WINOPTS_STATUS="bind-mounted"
+  else
+    WINOPTS_STATUS="not configured"
+  fi
+
+  # Keys (optional)
+  if [ -f "/root/.icewm/keys" ] && [ -s "/root/.icewm/keys" ]; then
+    log_info "Using bind-mounted keybindings"
+    chmod 644 /root/.icewm/keys
+    KEYS_STATUS="bind-mounted"
+  else
+    KEYS_STATUS="not configured"
   fi
 
   # =============================================================================
   # Background Image Configuration
   # =============================================================================
+  # Backgrounds are the ONE thing that comes from hooks/config/icewm/backgrounds/
+  # because they're large binary files that shouldn't be in mounted-files/
+  # =============================================================================
+  PLUGIN_CONFIG_DIR=""
   CUSTOM_BG_FOUND=false
-  WORKSPACE_BG_COUNT=0
 
-  # Check if plugin provides workspace-specific backgrounds (workspace1.png, workspace2.png, etc.)
+  # Find plugin config directory
+  if [ -n "${MARS_PLUGIN_ROOT:-}" ]; then
+    PLUGIN_CONFIG_DIR="${MARS_PLUGIN_ROOT}/hooks/config/icewm"
+  elif [ -d "/workspace/mars-user-plugin/hooks/config/icewm" ]; then
+    PLUGIN_CONFIG_DIR="/workspace/mars-user-plugin/hooks/config/icewm"
+  fi
+
+  # Check for workspace-specific backgrounds
   if [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -d "${PLUGIN_CONFIG_DIR}/backgrounds" ]; then
+    WORKSPACE_BG_COUNT=0
     for i in 1 2 3 4 5 6 7 8; do
       for ext in png jpg jpeg svg; do
         if [ -f "${PLUGIN_CONFIG_DIR}/backgrounds/workspace${i}.${ext}" ]; then
@@ -84,7 +163,7 @@ configure_icewm() {
       log_success "Installed ${WORKSPACE_BG_COUNT} workspace-specific backgrounds"
     fi
 
-    # Fall back to single custom.png if no workspace-specific backgrounds found
+    # Check for single custom background
     if [ "${CUSTOM_BG_FOUND}" = false ]; then
       for ext in png jpg jpeg svg; do
         if [ -f "${PLUGIN_CONFIG_DIR}/backgrounds/custom.${ext}" ]; then
@@ -99,110 +178,19 @@ configure_icewm() {
     fi
   fi
 
-  # Use MARS default background if no plugin backgrounds found
+  # Use MARS default background if no custom backgrounds found
   if [ "${CUSTOM_BG_FOUND}" = false ]; then
     if [ -f "/usr/local/share/mars-dev/icewm/backgrounds/mars-default.png" ]; then
       cp /usr/local/share/mars-dev/icewm/backgrounds/mars-default.png \
          /root/.icewm/backgrounds/current-background.png
       log_info "Using MARS default background"
+      BG_STATUS="MARS default"
     else
-      log_warn "Default background not found, IceWM will use solid color"
+      log_warn "No background found, IceWM will use solid color"
+      BG_STATUS="none (solid color)"
     fi
-  fi
-
-  # =============================================================================
-  # Bind-Mount Detection
-  # =============================================================================
-  # If files exist in /root/.icewm/ (bind-mounted from mounted-files/), preserve them.
-  # Only copy from plugin hooks/config if bind-mounted file doesn't exist.
-  #
-  # Architecture:
-  #   - mounted-files/root/.icewm/* = authoritative source (bind-mounted, persists)
-  #   - hooks/config/icewm/* = defaults/fallbacks (copied only if bind-mount missing)
-  #
-  # This prevents configure-icewm.sh from overwriting user customizations.
-  # =============================================================================
-
-  # =============================================================================
-  # Preferences Configuration
-  # =============================================================================
-  if [ -f "/root/.icewm/preferences" ] && [ -s "/root/.icewm/preferences" ]; then
-    log_info "Preserving existing preferences (bind-mounted)"
-    CUSTOM_PREFS_FOUND=true
-    # Also ensure prefoverride exists for theme override
-    if [ ! -f "/root/.icewm/prefoverride" ]; then
-      cp /root/.icewm/preferences /root/.icewm/prefoverride
-      log_success "Created prefoverride from existing preferences"
-    fi
-  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/preferences" ]; then
-    cp "${PLUGIN_CONFIG_DIR}/preferences" /root/.icewm/preferences
-    cp "${PLUGIN_CONFIG_DIR}/preferences" /root/.icewm/prefoverride
-    log_success "Installed IceWM preferences from plugin defaults"
-    CUSTOM_PREFS_FOUND=true
   else
-    # Use MARS default preferences
-    if [ -f "/usr/local/share/mars-dev/icewm/preferences.default" ]; then
-      cp /usr/local/share/mars-dev/icewm/preferences.default /root/.icewm/preferences
-      log_info "Using MARS default preferences"
-    else
-      log_warn "Default preferences not found, creating minimal config"
-      cat > /root/.icewm/preferences << EOF
-# Minimal IceWM configuration (auto-generated)
-DesktopBackgroundScaled=1
-ShowTaskBar=1
-EOF
-    fi
-    CUSTOM_PREFS_FOUND=false
-  fi
-
-  chmod 644 /root/.icewm/preferences
-
-  # =============================================================================
-  # Startup Script Configuration
-  # =============================================================================
-  if [ -f "/root/.icewm/startup" ] && [ -s "/root/.icewm/startup" ]; then
-    log_info "Preserving existing startup script (bind-mounted)"
-    chmod 755 /root/.icewm/startup
-    CUSTOM_STARTUP_FOUND=true
-  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/startup" ]; then
-    cp "${PLUGIN_CONFIG_DIR}/startup" /root/.icewm/startup
-    chmod 755 /root/.icewm/startup
-    log_success "Installed IceWM startup script from plugin defaults"
-    CUSTOM_STARTUP_FOUND=true
-  else
-    CUSTOM_STARTUP_FOUND=false
-  fi
-
-  # =============================================================================
-  # Toolbar Configuration
-  # =============================================================================
-  if [ -f "/root/.icewm/toolbar" ] && [ -s "/root/.icewm/toolbar" ]; then
-    log_info "Preserving existing toolbar (bind-mounted)"
-    chmod 644 /root/.icewm/toolbar
-    CUSTOM_TOOLBAR_FOUND=true
-  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/toolbar" ]; then
-    cp "${PLUGIN_CONFIG_DIR}/toolbar" /root/.icewm/toolbar
-    chmod 644 /root/.icewm/toolbar
-    log_success "Installed IceWM toolbar from plugin defaults"
-    CUSTOM_TOOLBAR_FOUND=true
-  else
-    CUSTOM_TOOLBAR_FOUND=false
-  fi
-
-  # =============================================================================
-  # Window Options Configuration
-  # =============================================================================
-  if [ -f "/root/.icewm/winoptions" ] && [ -s "/root/.icewm/winoptions" ]; then
-    log_info "Preserving existing window options (bind-mounted)"
-    chmod 644 /root/.icewm/winoptions
-    CUSTOM_WINOPTS_FOUND=true
-  elif [ -n "${PLUGIN_CONFIG_DIR}" ] && [ -f "${PLUGIN_CONFIG_DIR}/winoptions" ]; then
-    cp "${PLUGIN_CONFIG_DIR}/winoptions" /root/.icewm/winoptions
-    chmod 644 /root/.icewm/winoptions
-    log_success "Installed IceWM window options from plugin defaults"
-    CUSTOM_WINOPTS_FOUND=true
-  else
-    CUSTOM_WINOPTS_FOUND=false
+    BG_STATUS="custom"
   fi
 
   log_success "IceWM configuration complete"
@@ -210,14 +198,16 @@ EOF
   # Summary
   echo ""
   echo "IceWM Configuration Summary:"
-  echo "  Background:  $([ "${CUSTOM_BG_FOUND}" = true ] && echo "Custom" || echo "Default (MARS)")"
-  echo "  Preferences: $([ "${CUSTOM_PREFS_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "Default (MARS)")"
-  echo "  Startup:     $([ "${CUSTOM_STARTUP_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "None")"
-  echo "  Toolbar:     $([ "${CUSTOM_TOOLBAR_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "None")"
-  echo "  WinOptions:  $([ "${CUSTOM_WINOPTS_FOUND}" = true ] && echo "Custom (bind-mounted or plugin)" || echo "None")"
+  echo "  ─────────────────────────────────────────"
+  echo "  preferences:  bind-mounted ✓"
+  echo "  toolbar:      bind-mounted ✓"
+  echo "  startup:      ${STARTUP_STATUS}"
+  echo "  winoptions:   ${WINOPTS_STATUS}"
+  echo "  keys:         ${KEYS_STATUS}"
+  echo "  background:   ${BG_STATUS}"
+  echo "  ─────────────────────────────────────────"
   echo ""
-  echo "Note: Bind-mounted files (mounted-files/root/.icewm/*) take precedence."
-  echo "      Edit those files directly for persistent customization."
+  echo "Edit files in mounted-files/root/.icewm/ for persistent changes."
   echo ""
 }
 
