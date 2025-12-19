@@ -54,6 +54,94 @@ declare -a SYMLINK_PAIRS=(
 )
 
 # =============================================================================
+# Fix Plugin Registration Symlink (ADR-0044 Credential Loading)
+# =============================================================================
+# PROBLEM: The .mars/user-plugin symlink in plugins.yaml points to a HOST path
+# that doesn't exist in containers. This breaks plugin-env.config sourcing,
+# which in turn breaks CREDENTIAL_SCRIPT_DIR setup, causing credential loading
+# to fail silently.
+#
+# SOLUTION: Detect the actual plugin location and fix the symlink at startup.
+# This allows credentials to load correctly in any container environment.
+# =============================================================================
+fix_plugin_registration_symlink() {
+  log_info "Checking plugin registration symlink (ADR-0044 compliance)..."
+
+  # Find the actual plugin location (this script is in hooks/, so plugin is one level up)
+  # SCRIPT_DIR = /path/to/plugin/hooks
+  # dirname(SCRIPT_DIR) = /path/to/plugin
+  local actual_plugin_path
+  actual_plugin_path="$(dirname "${SCRIPT_DIR}")"
+
+  # Normalize to absolute path
+  actual_plugin_path="$(cd "${actual_plugin_path}" && pwd -P)"
+
+  # Find all potential project roots that might have .mars/user-plugin symlinks
+  # Check: /workspace (E30 research project), /workspace/mars-v2 (E6)
+  local -a project_roots=(
+    "/workspace"
+    "/workspace/mars-v2"
+    "${MARS_REPO_ROOT:-}"
+    "${PROJECT_ROOT:-}"
+  )
+
+  local fixed_count=0
+
+  for project_root in "${project_roots[@]}"; do
+    # Skip empty paths
+    [ -z "${project_root}" ] && continue
+
+    # Skip if .mars directory doesn't exist
+    [ ! -d "${project_root}/.mars" ] && continue
+
+    local symlink_path="${project_root}/.mars/user-plugin"
+
+    # Skip if symlink doesn't exist
+    [ ! -L "${symlink_path}" ] && [ ! -e "${symlink_path}" ] && continue
+
+    # Check if symlink points to correct location
+    if [ -L "${symlink_path}" ]; then
+      local current_target
+      current_target="$(readlink "${symlink_path}")"
+
+      # Resolve the symlink target to absolute path for comparison
+      local resolved_target=""
+      if [ -d "${current_target}" ]; then
+        resolved_target="$(cd "${current_target}" && pwd -P)"
+      elif [ "${current_target:0:1}" != "/" ]; then
+        # Relative path - resolve from symlink's directory
+        local symlink_dir
+        symlink_dir="$(dirname "${symlink_path}")"
+        if [ -d "${symlink_dir}/${current_target}" ]; then
+          resolved_target="$(cd "${symlink_dir}/${current_target}" && pwd -P)"
+        fi
+      fi
+
+      if [ "${resolved_target}" = "${actual_plugin_path}" ]; then
+        log_info "Plugin symlink already correct: ${symlink_path} → ${current_target}"
+        continue
+      fi
+
+      # Symlink exists but points to wrong location (or unresolvable location)
+      log_warning "Plugin symlink points to inaccessible path: ${current_target}"
+      log_info "Fixing symlink to point to actual plugin location: ${actual_plugin_path}"
+
+      rm -f "${symlink_path}"
+      ln -s "${actual_plugin_path}" "${symlink_path}"
+      log_success "Fixed plugin symlink: ${symlink_path} → ${actual_plugin_path}"
+      fixed_count=$((fixed_count + 1))
+    fi
+  done
+
+  if [ ${fixed_count} -gt 0 ]; then
+    log_success "Fixed ${fixed_count} plugin registration symlink(s)"
+    log_info "Credential loading (ADR-0044) should now work correctly"
+  else
+    log_info "All plugin registration symlinks are correct"
+  fi
+}
+
+# =============================================================================
 # Zellij Layout Symlink Setup (Root User Only)
 # =============================================================================
 setup_zellij_layout_symlink() {
@@ -711,6 +799,11 @@ fix_ssh_permissions() {
 # =============================================================================
 main() {
   log_info "Setting up multi-user plugin access..."
+
+  # Fix plugin registration symlink FIRST (ADR-0044)
+  # This ensures CREDENTIAL_SCRIPT_DIR is set correctly when mars-env.config is sourced
+  fix_plugin_registration_symlink
+  echo ""
 
   # Setup credentials group first (needed for file access)
   setup_credentials_group
