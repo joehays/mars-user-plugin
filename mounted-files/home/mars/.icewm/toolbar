@@ -1,9 +1,0 @@
-# IceWM Toolbar - Quicklaunch buttons
-# Format: prog "Label" /path/to/icon /path/to/executable
-# Icons are stored in /usr/share/pixmaps/ (mounted from plugin)
-
-prog "Firefox" /usr/share/pixmaps/firefox.png firefox
-prog "GitLab" /usr/share/pixmaps/gitlab.png xdg-open http://localhost:8929
-prog "PlantUML" /usr/share/pixmaps/plantuml.png xdg-open http://localhost:8091/plantuml/
-prog "Zotero" /usr/share/pixmaps/zotero.png zotero
-prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm

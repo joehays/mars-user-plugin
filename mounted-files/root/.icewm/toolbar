@@ -16,7 +16,7 @@ prog "GitLab" /usr/share/pixmaps/gitlab.png firefox http://mars-gitlab-ce
 prog "PlantUML" /usr/share/pixmaps/plantuml.png firefox http://localhost:8091/plantuml/
 
 # Neo4j Browser - Graph Database
-prog "Neo4j" /usr/share/pixmaps/neo4j.png firefox http://localhost:7474
+prog "graph-db" /usr/share/pixmaps/neo4j.png firefox http://localhost:7474
 
 # === Applications ===
 
@@ -34,8 +34,8 @@ prog "Terminal" /usr/share/pixmaps/xterm-color_48x48.xpm xterm
 # WezTerm - GPU-accelerated Terminal
 prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm
 
-# === IDE (uncomment if installed) ===
-# prog "VSCode" /usr/share/pixmaps/code.png code
+# === IDE  ===
+prog "VSCode" /usr/share/pixmaps/code.png code
 
 # === File Manager (uncomment if installed) ===
 # prog "Files" /usr/share/pixmaps/folder.png nautilus

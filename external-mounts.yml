@@ -35,6 +35,7 @@ services:
       # - ~/dev/dotfiles/.bashrc:/root/.bashrc:rw
       # - ~/dev/dotfiles/.zshrc:/root/.zshrc:rw
       # - ~/dev/dotfiles/nvim-config:/root/.config/nvim:rw
+      - ${HOME}/dev/joe-docs/dev-ops/mars/.Xauthority:/root/.Xauthority:rww
 
       # Example: SSH keys (read-only for security)
       # - ~/.ssh/id_ed25519:/root/.ssh/github_key:ro
@@ -52,9 +53,9 @@ services:
       # - Certificates_PKCS7_v5_14_DoD/DoD_PKE_CA_chain.pem: DoD CA certs (ro)
       #
       # Mount the entire directory for simplicity
-      - ${HOME}/dev/joe-docs/dev-ops/mars:/home/mars/.mars/credentials:ro
+      - ${HOME}/dev/joe-docs/dev-ops/mars:/root/.mars/credentials:rww
       # Override capra_access_token as rw so token can be refreshed
-      - ${HOME}/dev/joe-docs/dev-ops/mars/capra_access_token:/home/mars/.mars/credentials/capra_access_token:rw
+      - ${HOME}/dev/joe-docs/dev-ops/mars/capra_access_token:/root/.mars/credentials/capra_access_token:rwx
       #
       # SSH keys: Mount to /root/.ssh/ ONLY
       # container-startup.sh copies to /home/mars/.ssh/ with correct ownership
