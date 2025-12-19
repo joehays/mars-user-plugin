@@ -215,8 +215,45 @@ generate_auto_mounts() {
     local temp_mounts="/tmp/mars-auto-mounts-$$.yml"
     echo "      # Auto-generated mounts from mounted-files/ (ADR-0011)" > "$temp_mounts"
 
-    # Find all regular files (not symlinks, not .gitkeep)
+    # Track which paths are already mounted (to avoid duplicate mounts)
+    declare -A mounted_paths
+
     local mount_count=0
+
+    # PHASE 1: Mount DIRECTORIES that contain files
+    # This ensures file edits propagate (directory inodes don't change when files inside are edited)
+    # We mount directories at depth 2+ (e.g., root/.icewm/ but not root/)
+    while IFS= read -r -d '' dir; do
+        # Skip the base mounted-files directory itself
+        if [ "$dir" = "$mounted_files_dir" ]; then
+            continue
+        fi
+
+        # Calculate relative path and container path
+        local rel_path="${dir#$mounted_files_dir/}"
+        local container_path="/$rel_path"
+
+        # Skip top-level directories (e.g., "root", "home", "usr")
+        # We want to mount subdirectories like "root/.icewm" not "root"
+        local depth=$(echo "$rel_path" | tr -cd '/' | wc -c)
+        if [ "$depth" -lt 1 ]; then
+            continue
+        fi
+
+        # Check if directory has any regular files (not just subdirectories)
+        local file_count=$(find "$dir" -maxdepth 1 -type f ! -name ".gitkeep" 2>/dev/null | wc -l)
+        if [ "$file_count" -eq 0 ]; then
+            continue
+        fi
+
+        # Add directory mount
+        echo "      - $dir:$container_path:rw" >> "$temp_mounts"
+        mounted_paths["$rel_path"]=1
+        mount_count=$((mount_count + 1))
+        log_info "  Directory mount: $container_path"
+    done < <(find "$mounted_files_dir" -type d -print0 2>/dev/null)
+
+    # PHASE 2: Mount individual FILES that aren't inside already-mounted directories
     while IFS= read -r -d '' file; do
         # Skip .gitkeep files
         if [[ "$(basename "$file")" == ".gitkeep" ]]; then
@@ -227,12 +264,28 @@ generate_auto_mounts() {
         local rel_path="${file#$mounted_files_dir/}"
         local container_path="/$rel_path"
 
+        # Check if this file is inside an already-mounted directory
+        local parent_dir=$(dirname "$rel_path")
+        local skip=false
+        while [ "$parent_dir" != "." ]; do
+            if [ -n "${mounted_paths[$parent_dir]:-}" ]; then
+                skip=true
+                break
+            fi
+            parent_dir=$(dirname "$parent_dir")
+        done
+
+        if [ "$skip" = true ]; then
+            continue
+        fi
+
         # Determine mount mode
         local mode=$(check_mount_mode "$file")
 
         # Add mount line to temp file
         echo "      - $file:$container_path:$mode" >> "$temp_mounts"
         mount_count=$((mount_count + 1))
+        log_info "  File mount: $container_path"
     done < <(find "$mounted_files_dir" -type f -print0 2>/dev/null)
 
     # Insert auto-generated mounts at the marker (before mars-runtime section)
