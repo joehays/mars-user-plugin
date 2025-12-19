@@ -35,7 +35,8 @@ prog "Terminal" /usr/share/pixmaps/xterm-color_48x48.xpm xterm
 prog "WezTerm" /usr/share/pixmaps/wezterm.png wezterm
 
 # === IDE  ===
-prog "VSCode" /usr/share/pixmaps/code.png code
+# VSCode requires --no-sandbox and --user-data-dir when running as root
+prog "VSCode" /usr/share/pixmaps/code.png code --no-sandbox --user-data-dir=/root/.vscode-root
 
 # === File Manager (uncomment if installed) ===
 # prog "Files" /usr/share/pixmaps/folder.png nautilus
