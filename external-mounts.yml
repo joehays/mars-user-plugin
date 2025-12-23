@@ -35,7 +35,6 @@ services:
       # - ~/dev/dotfiles/.bashrc:/root/.bashrc:rw
       # - ~/dev/dotfiles/.zshrc:/root/.zshrc:rw
       # - ~/dev/dotfiles/nvim-config:/root/.config/nvim:rw
-      - ${HOME}/dev/joe-docs/dev-ops/mars/.Xauthority:/root/.Xauthority:rww
 
       # Example: SSH keys (read-only for security)
       # - ~/.ssh/id_ed25519:/root/.ssh/github_key:ro
@@ -56,12 +55,9 @@ services:
       - ${HOME}/dev/joe-docs/dev-ops/mars:/root/.mars/credentials:rww
       # Override capra_access_token as rw so token can be refreshed
       - ${HOME}/dev/joe-docs/dev-ops/mars/capra_access_token:/root/.mars/credentials/capra_access_token:rwx
-      #
-      # SSH keys: Mount to /root/.ssh/ ONLY
-      # container-startup.sh copies to /home/mars/.ssh/ with correct ownership
-      # (bind mounts cannot change ownership - kernel limitation)
-      - ${HOME}/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
-      # REMOVED: /home/mars/.ssh mount - now copied at startup
+      # NOTE: SSH keys moved to AFTER auto-mounts marker (see below)
+      # Reason: Auto-mounts mount /root directory, individual file mounts
+      # must come AFTER to overlay on top of the directory mount.
 
       # ==================================================================
       # Shell RC files (from ~/dev/dotfiles via symlinks)
@@ -80,3 +76,13 @@ services:
       - ${HOME}/.config/nvim:/root/.config/nvim:rw
 
       # --- AUTO-MOUNTS-MARKER (do not remove) ---
+      # Auto-mounts from mounted-files/ are inserted above this line by pre-up.sh
+
+      # ==================================================================
+      # POST-AUTO-MOUNT OVERLAYS (must come after directory mounts)
+      # ==================================================================
+      # These mounts overlay specific files ON TOP of auto-mounted directories.
+      # Order matters: directory mounts first, then file overlays.
+
+      # SSH keys: Overlay on top of auto-mounted /root directory
+      - ${HOME}/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
