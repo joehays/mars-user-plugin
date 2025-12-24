@@ -40,11 +40,11 @@ install_icewm() {
   fi
 
   # Create symlink for TurboVNC compatibility
-  # TurboVNC's xstartup.turbovnc looks for /usr/share/xsessions/icewm.desktop
-  # but Ubuntu 22.04's icewm package installs icewm-session.desktop
+  # TurboVNC's -wm flag strips "-session" suffix, so "icewm-session" looks for "icewm.desktop"
+  # but Ubuntu 22.04's icewm package installs icewm-session.desktop. Create symlink to fix this.
   if [ -f /usr/share/xsessions/icewm-session.desktop ] && [ ! -e /usr/share/xsessions/icewm.desktop ]; then
     log_info "Creating icewm.desktop symlink for TurboVNC compatibility..."
-    ln -sf icewm-session.desktop /usr/share/xsessions/icewm.desktop
+    ln -sf /usr/share/xsessions/icewm-session.desktop /usr/share/xsessions/icewm.desktop
     log_success "Created symlink: icewm.desktop -> icewm-session.desktop"
   fi
 
